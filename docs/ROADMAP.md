@@ -12,23 +12,41 @@ Versions are cumulative. Each version includes all features from prior versions.
 
 ---
 
-## v1.0 — MVP (Current)
+## v1.0 — MVP
 
-**Goal**: A complete, usable local-first CET preparation tracker. All core CRUD operations, vocabulary import, and data visualization are functional.
+**Goal**: A complete, usable local-first CET preparation tracker.
 
-- [x] **Exam session CRUD** — Create, read, update, delete practice sessions with exam type, session type, date, duration, and notes.
-- [x] **Listening result recording** — Record total questions, correct count, wrong question numbers with per-question mistake tags, and a free-text reflection for listening sessions.
-- [x] **Reading result recording** — Same as listening, plus a `question_type` field (选词填空 / 长篇阅读 / 仔细阅读). Multiple reading results per session.
-- [x] **Markdown vocabulary import** — Paste structured Markdown, parse it into structured vocabulary entries. Preview before saving. Save the note even if parsing yields zero entries.
-- [x] **Card-based vocabulary display** — Each vocabulary entry renders as a richly designed card with visually distinct sections (meanings, usages, examples, mistake tips, synonyms, comparisons, writing sentences).
-- [x] **Dashboard with charts** — Stat cards, listening and reading trend line charts, vocabulary mastery donut chart, recent sessions list, pending review count.
-- [x] **JSON import/export** — Export all data as a single JSON file. Import replaces all existing data with a single confirmation step.
-- [x] **Mastery state tracking** — Four states (new / learning / familiar / mastered) per vocabulary entry, manually assigned by the user. Review count and last reviewed timestamp tracked.
+- [x] **Exam session CRUD**
+- [x] **Listening/Reading result recording**
+- [x] **Markdown vocabulary import**
+- [x] **Card-based vocabulary display**
+- [x] **Dashboard with charts**
+- [x] **JSON import/export**
+- [x] **Mastery state tracking**
 
-**Tech stack**:
-- Backend: Python FastAPI + SQLModel + SQLite
-- Frontend: Vue 3 + Element Plus + ECharts
-- No authentication, no cloud services, no external APIs
+---
+
+## v0.2.1 — Word-List Vocabulary Generation (Current)
+
+**Goal**: Primary vocabulary entry via word list → AI generation, with Markdown import as secondary option.
+
+- [x] **Word-list generation** — Input words → DeepSeek generates structured entries with meanings, usages, examples, mistake tips, synonyms, comparisons, and writing sentences.
+- [x] **Generation preferences** — Configurable detail level, example style, writing sentences toggle, comparisons toggle.
+- [x] **Tab layout on import page** — Default tab: word-list generation; second tab: Markdown import.
+- [x] **Structured preview** — Card-based preview for AI-generated entries; term editing, entry deletion before save.
+- [x] **Generated markdown** — Standardized markdown preserved in collapsed view.
+- [x] **Save from generated** — New endpoint `POST /api/vocabulary/notes/from-generated`.
+- [x] **All v0.2.0 features retained** — Markdown import, detail pagination, review, editing.
+
+---
+
+## v0.2.0 — Vocabulary Module Upgrade
+
+- [x] **Markdown noise cleaning** — `text_cleaner.py` + `vocabularyFormat.ts`.
+- [x] **Enhanced local parser** — 5 input formats.
+- [x] **Vocabulary detail/review pagination and filtering**.
+- [x] **Manual entry editing** — Edit dialog in detail page.
+- [x] **Optional AI normalization** — Markdown → structured JSON.
 
 ---
 
@@ -95,9 +113,9 @@ Versions are cumulative. Each version includes all features from prior versions.
 
 ### Exam Paper Library
 
-- [ ] **Pre-populated paper names**: Built-in list of known CET-4 and CET-6 exam papers organized by year and month (e.g., "2024年6月真题卷1", "2024年6月真题卷2", "2024年6月真题卷3").
-- [ ] **Quick-select on session create**: Autocomplete or cascading dropdown (Year -> Month -> Paper) when creating a session.
-- [ ] **Paper metadata**: Each paper can have a difficulty rating and a note about which sections are included.
+- [ ] **Paper name presets**: User-defined templates for session paper names (e.g., organized by year/month), with quick-select on session creation. Does NOT ship with real exam paper names or content.
+- [ ] **Quick-select on session create**: Autocomplete or cascading dropdown (Year -> Month -> Paper) when creating a session, using user's own naming conventions.
+- [ ] **Paper metadata**: Each paper template can have a difficulty rating and a note about which sections are included. User-managed only.
 
 ### Goal Setting and Progress
 

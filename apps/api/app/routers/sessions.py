@@ -29,7 +29,7 @@ def list_sessions(
     exam_type: Optional[str] = Query(None),
     session_type: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_session),
 ):
     """List sessions with optional filtering and pagination."""

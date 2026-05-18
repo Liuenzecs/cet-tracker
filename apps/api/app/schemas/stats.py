@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class TrendPoint(BaseModel):
     date: str  # ISO date string
     accuracy: Optional[float] = None
+    question_type: Optional[str] = None  # reading result question type (None for listening)
 
 
 class RecentSessionSummary(BaseModel):
@@ -17,6 +18,7 @@ class RecentSessionSummary(BaseModel):
     paper_name: str
     session_type: str
     date: str
+    duration_minutes: int = 0
 
 
 class DashboardStats(BaseModel):

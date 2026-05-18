@@ -70,7 +70,7 @@ List sessions with optional filtering and pagination.
 | exam_type | string | No | — | Filter: CET4 or CET6 |
 | session_type | string | No | — | Filter: full_mock, listening, reading, writing, translation |
 | page | integer | No | 1 | Page number (1-based) |
-| page_size | integer | No | 20 | Items per page (max 100) |
+| page_size | integer | No | 20 | Items per page (max 200) |
 
 **Response 200**:
 ```json
@@ -81,7 +81,7 @@ List sessions with optional filtering and pagination.
       {
         "id": 1,
         "exam_type": "CET4",
-        "paper_name": "2024年6月真题卷1",
+        "paper_name": "CET4 示例训练套卷",
         "session_type": "full_mock",
         "date": "2025-03-15",
         "duration_minutes": 130,
@@ -108,7 +108,7 @@ Create a new exam session.
 ```json
 {
   "exam_type": "CET4",
-  "paper_name": "2024年6月真题卷1",
+  "paper_name": "CET4 示例训练套卷",
   "session_type": "full_mock",
   "date": "2025-03-15",
   "duration_minutes": 130,
@@ -131,7 +131,7 @@ Create a new exam session.
   "data": {
     "id": 1,
     "exam_type": "CET4",
-    "paper_name": "2024年6月真题卷1",
+    "paper_name": "CET4 示例训练套卷",
     "session_type": "full_mock",
     "date": "2025-03-15",
     "duration_minutes": 130,
@@ -156,7 +156,7 @@ Get a single session with its associated listening and reading results.
   "data": {
     "id": 1,
     "exam_type": "CET4",
-    "paper_name": "2024年6月真题卷1",
+    "paper_name": "CET4 示例训练套卷",
     "session_type": "full_mock",
     "date": "2025-03-15",
     "duration_minutes": 130,
@@ -238,7 +238,7 @@ Update an existing exam session. All fields optional (partial update).
 **Request Body**:
 ```json
 {
-  "paper_name": "2024年6月真题卷1（修订版）",
+  "paper_name": "CET4 示例训练套卷（修订版）",
   "note": "Updated notes after review"
 }
 ```
@@ -250,7 +250,7 @@ Update an existing exam session. All fields optional (partial update).
   "data": {
     "id": 1,
     "exam_type": "CET4",
-    "paper_name": "2024年6月真题卷1（修订版）",
+    "paper_name": "CET4 示例训练套卷（修订版）",
     "session_type": "full_mock",
     "date": "2025-03-15",
     "duration_minutes": 130,
@@ -475,8 +475,9 @@ List all vocabulary notes.
 |-------|------|----------|---------|-------------|
 | exam_type | string | No | — | Filter: CET4 or CET6 |
 | source_section | string | No | — | Filter: listening, reading, writing, translation, other |
+| source_session_id | integer | No | — | Filter by linked training session |
 | page | integer | No | 1 | Page number |
-| page_size | integer | No | 20 | Items per page |
+| page_size | integer | No | 20 | Items per page (max 200) |
 
 **Response 200**:
 ```json
@@ -486,10 +487,10 @@ List all vocabulary notes.
     "items": [
       {
         "id": 1,
-        "title": "2024年6月真题卷1 阅读词汇",
+        "title": "CET4 示例训练阅读词汇",
         "source_session_id": 1,
         "exam_type": "CET4",
-        "paper_name": "2024年6月真题卷1",
+        "paper_name": "CET4 示例训练套卷",
         "source_section": "reading",
         "entry_count": 25,
         "created_at": "2025-03-16T10:00:00",
@@ -515,11 +516,11 @@ Create a vocabulary note with parsed entries from raw Markdown.
 **Request Body**:
 ```json
 {
-  "title": "2024年6月真题卷1 阅读词汇",
+  "title": "CET4 示例训练阅读词汇",
   "raw_markdown": "## 1. pending\n\n### 释义\n等待处理的；悬而未决的\n\n### 例句\n- The case is still pending. — 案件仍在审理中。",
   "source_session_id": 1,
   "exam_type": "CET4",
-  "paper_name": "2024年6月真题卷1",
+  "paper_name": "CET4 示例训练套卷",
   "source_section": "reading"
 }
 ```
@@ -537,10 +538,10 @@ Create a vocabulary note with parsed entries from raw Markdown.
   "success": true,
   "data": {
     "id": 1,
-    "title": "2024年6月真题卷1 阅读词汇",
+    "title": "CET4 示例训练阅读词汇",
     "source_session_id": 1,
     "exam_type": "CET4",
-    "paper_name": "2024年6月真题卷1",
+    "paper_name": "CET4 示例训练套卷",
     "source_section": "reading",
     "entry_count": 2,
     "created_at": "2025-03-16T10:00:00",
@@ -562,11 +563,11 @@ Get a single vocabulary note with its entries.
   "success": true,
   "data": {
     "id": 1,
-    "title": "2024年6月真题卷1 阅读词汇",
+    "title": "CET4 示例训练阅读词汇",
     "raw_markdown": "## 1. pending\n\n### 释义\n等待处理的...",
     "source_session_id": 1,
     "exam_type": "CET4",
-    "paper_name": "2024年6月真题卷1",
+    "paper_name": "CET4 示例训练套卷",
     "source_section": "reading",
     "created_at": "2025-03-16T10:00:00",
     "updated_at": "2025-03-16T10:00:00",
@@ -622,22 +623,30 @@ Delete a vocabulary note and all its entries (CASCADE).
 
 ### GET /api/vocabulary/notes/{id}/entries
 
-Get entries for a note (without the note metadata or raw_markdown).
+Get entries for a note with pagination, filtering, and search.
 
 **Query Parameters**:
 
 | Param | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
+| page | integer | No | 1 | Page number |
+| page_size | integer | No | 10 | Items per page (max 200) |
 | familiarity | string | No | — | Filter: new, learning, familiar, mastered |
+| q | string | No | — | Search by term (substring match) |
 
 **Response 200**:
 ```json
 {
   "success": true,
-  "data": [
-    { "id": 1, "term": "pending", "familiarity": "new", ... },
-    { "id": 2, "term": "sustainable", "familiarity": "learning", ... }
-  ],
+  "data": {
+    "items": [
+      { "id": 1, "term": "pending", "familiarity": "new", ... },
+      { "id": 2, "term": "sustainable", "familiarity": "learning", ... }
+    ],
+    "total": 25,
+    "page": 1,
+    "page_size": 10
+  },
   "error": null
 }
 ```
@@ -658,6 +667,52 @@ Update a vocabulary entry. Partial update — only send fields that changed.
 ```
 
 **Response 200**: Returns the updated entry object.
+
+---
+
+### GET /api/vocabulary/review
+
+Get vocabulary entries for review with pagination and filtering.
+
+**Query Parameters**:
+
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| page | integer | No | 1 | Page number |
+| page_size | integer | No | 1 | Items per page (max 200). Default 1 for flashcard mode. |
+| familiarity | string | No | — | Filter: new, learning, familiar, mastered. If not provided, returns entries with "new" or "learning". |
+| q | string | No | — | Search by term (substring match) |
+
+**Response 200**:
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "note_id": 1,
+        "term": "pending",
+        "entry_type": "word",
+        "meanings_json": ["等待处理的", "悬而未决的", "即将发生的"],
+        "usages_json": ["pending decision — 待定的决定"],
+        "examples_json": [
+          {"en": "The case is still pending.", "zh": "案件仍在审理中。"}
+        ],
+        "familiarity": "new",
+        "review_count": 0,
+        "last_reviewed_at": null
+      }
+    ],
+    "total": 105,
+    "page": 1,
+    "page_size": 1
+  },
+  "error": null
+}
+```
+
+**Sorting**: Results are ordered by familiarity (new first) and then by `updated_at` descending.
 
 ---
 
@@ -703,6 +758,186 @@ This endpoint does NOT persist anything to the database.
 
 ---
 
+### GET /api/vocabulary/ai-status
+
+Check if AI normalization is configured and available.
+
+**Response 200**:
+```json
+{
+  "success": true,
+  "data": {
+    "enabled": false,
+    "provider": "deepseek",
+    "configured": false,
+    "message": "AI 规范化未启用。请在后端 .env 中设置 AI_NORMALIZER_ENABLED=true 并重启服务。"
+  },
+  "error": null
+}
+```
+
+This endpoint does NOT expose the API key.
+
+---
+
+### POST /api/vocabulary/normalize-markdown
+
+Normalize raw markdown into structured vocabulary using AI (DeepSeek or compatible). This endpoint does NOT save anything to the database.
+
+**Prerequisites**: AI_NORMALIZER_ENABLED=true and AI_API_KEY set in backend .env.
+
+**Request Body**:
+```json
+{
+  "raw_markdown": "## pending\n\n### 释义\n...",
+  "provider": "deepseek"
+}
+```
+
+**Response 200** (success):
+```json
+{
+  "success": true,
+  "data": {
+    "title": "词汇笔记",
+    "entries": [
+      {
+        "term": "pending",
+        "entry_type": "word",
+        "meanings": [
+          {"pos": "adj.", "zh": "待处理的", "en": "not yet decided"}
+        ],
+        "usages": [
+          {"pattern": "pending approval", "meaning": "等待批准"}
+        ],
+        "examples": [
+          {"en": "The case is still pending.", "zh": "案件仍在审理中。"}
+        ],
+        "mistake_tips": [],
+        "synonyms": ["undecided"],
+        "comparisons": [],
+        "writing_sentences": []
+      }
+    ],
+    "warnings": [],
+    "source": "ai"
+  },
+  "error": null
+}
+```
+
+**Response 200** (AI not configured):
+```json
+{
+  "success": true,
+  "data": {
+    "title": "",
+    "entries": [],
+    "warnings": ["AI 规范化未启用"],
+    "source": "ai"
+  },
+  "error": null
+}
+```
+
+---
+
+### POST /api/vocabulary/generate-from-words
+
+Generate structured vocabulary entries from a word list using AI. This endpoint does NOT save anything to the database.
+
+**Prerequisites**: AI_NORMALIZER_ENABLED=true and AI_API_KEY set in backend .env.
+
+**Request Body**:
+```json
+{
+  "title": "CET6 阅读生词笔记",
+  "exam_type": "CET6",
+  "paper_name": "2024年6月第一套",
+  "source_section": "reading",
+  "source_session_id": null,
+  "words": ["pending", "materialise", "real estate"],
+  "options": {
+    "detail_level": "standard",
+    "example_style": "cet",
+    "include_writing_sentences": true,
+    "include_comparisons": true,
+    "language": "zh-CN"
+  }
+}
+```
+
+**Validation**:
+- `words`: Required. 1-50 entries, each max 100 chars.
+- `exam_type`: Must be "CET4" or "CET6".
+- `source_section`: Must be one of listening/reading/writing/translation/other.
+- `options.detail_level`: brief / standard / detailed.
+- `options.example_style`: cet / academic / daily.
+
+**Response 200**:
+```json
+{
+  "success": true,
+  "data": {
+    "title": "CET6 阅读生词笔记",
+    "standardized_markdown": "# CET6 阅读生词笔记\n\n...",
+    "entries": [
+      {
+        "term": "pending",
+        "entry_type": "word",
+        "meanings": [{"pos": "adj.", "zh": "待处理的", "en": "not yet decided"}],
+        "usages": [{"pattern": "pending approval", "meaning": "等待批准"}],
+        "examples": [{"en": "The decision is still pending.", "zh": "决定仍未作出。"}],
+        "mistake_tips": ["不要和 impending 混淆"],
+        "synonyms": ["undecided"],
+        "comparisons": [],
+        "writing_sentences": [],
+        "tags": ["CET6"]
+      }
+    ],
+    "warnings": [],
+    "source": "ai"
+  },
+  "error": null
+}
+```
+
+---
+
+### POST /api/vocabulary/notes/from-generated
+
+Save user-confirmed AI-generated vocabulary entries. This endpoint does NOT call AI — it persists entries that were already generated and reviewed.
+
+**Request Body**:
+```json
+{
+  "title": "CET6 阅读生词笔记",
+  "raw_input": "pending\nmaterialise\nreal estate",
+  "standardized_markdown": "# CET6...\n...",
+  "source_session_id": null,
+  "exam_type": "CET6",
+  "paper_name": "2024年6月第一套",
+  "source_section": "reading",
+  "entries": [...]
+}
+```
+
+**Response 200**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "title": "CET6 阅读生词笔记",
+    "entry_count": 3,
+    "created_at": "2026-05-18T12:00:00"
+  },
+  "error": null
+}
+```
+
+---
+
 ## Statistics
 
 ### GET /api/stats/dashboard
@@ -743,11 +978,10 @@ Aggregated dashboard statistics. All computed from current database state.
       {
         "id": 12,
         "exam_type": "CET4",
-        "paper_name": "2024年12月真题卷2",
+        "paper_name": "CET4 示例训练套卷",
         "session_type": "full_mock",
         "date": "2025-03-29",
-        "listening_accuracy": 75.0,
-        "reading_accuracy": 72.0
+        "duration_minutes": 130
       }
     ]
   },
@@ -760,10 +994,10 @@ Aggregated dashboard statistics. All computed from current database state.
 - `total_reading_sessions`: Count of sessions where session_type is "reading" or "full_mock" AND at least one reading_result exists.
 - Accuracy for a session = (sum of correct_count / sum of total_questions) * 100 across relevant results.
 - `avg_listening_accuracy`: Average accuracy across all sessions with listening results.
-- `listening_trend`: Last 10 listening sessions ordered by date ascending, each with accuracy.
-- `reading_trend`: All reading results ordered by date, each with question_type and accuracy.
+- `listening_trend`: Last 5 listening sessions ordered by date, each with accuracy. No `question_type`.
+- `reading_trend`: Last 5 reading sessions, one point per reading result with `question_type` and accuracy.
 - `pending_review`: Count of vocabulary entries where familiarity is "new" or "learning".
-- `recent_sessions`: Last 5 sessions ordered by date descending, with computed accuracy fields.
+- `recent_sessions`: Last 5 sessions ordered by date descending. Each entry includes `duration_minutes`.
 
 ---
 
@@ -782,7 +1016,7 @@ Export ALL data as a single JSON file. The response triggers a file download.
     {
       "id": 1,
       "exam_type": "CET4",
-      "paper_name": "2024年6月真题卷1",
+      "paper_name": "CET4 示例训练套卷",
       "session_type": "full_mock",
       "date": "2025-03-15",
       "duration_minutes": 130,
@@ -809,11 +1043,11 @@ Export ALL data as a single JSON file. The response triggers a file download.
   "vocabulary_notes": [
     {
       "id": 1,
-      "title": "2024年6月真题卷1 阅读词汇",
+      "title": "CET4 示例训练阅读词汇",
       "raw_markdown": "...",
       "source_session_id": 1,
       "exam_type": "CET4",
-      "paper_name": "2024年6月真题卷1",
+      "paper_name": "CET4 示例训练套卷",
       "source_section": "reading",
       "created_at": "2025-03-16T10:00:00",
       "updated_at": "2025-03-16T10:00:00"

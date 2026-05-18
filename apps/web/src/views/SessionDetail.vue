@@ -313,7 +313,7 @@ import { getSession, updateSession, deleteSession } from '@/api/sessions'
 import { getListeningResult, createListeningResult, deleteListeningResult } from '@/api/listening'
 import { getReadingResults, createReadingResult, deleteReadingResult } from '@/api/reading'
 import { getVocabularyNotes } from '@/api/vocabulary'
-import { useConfirm } from '@/components/ConfirmDialog.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ExamSession, ListeningResult, ReadingResult, VocabularyNote } from '@/types'
 import { SESSION_TYPES, LISTENING_MISTAKE_TAGS, READING_MISTAKE_TAGS, READING_QUESTION_TYPES } from '@/types'
 

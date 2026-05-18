@@ -87,7 +87,7 @@ import { Download, Upload, UploadFilled, Document } from '@element-plus/icons-vu
 import PageHeader from '@/components/PageHeader.vue'
 import SectionCard from '@/components/SectionCard.vue'
 import { exportDataJSON, importDataJSON } from '@/api/data'
-import { useConfirm } from '@/components/ConfirmDialog.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import type { ExportData } from '@/types'
 
 const { confirm } = useConfirm()

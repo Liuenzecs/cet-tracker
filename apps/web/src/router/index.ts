@@ -35,15 +35,15 @@ const router = createRouter({
       component: () => import('@/views/VocabularyImport.vue'),
     },
     {
+      path: '/vocabulary/review',
+      name: 'VocabularyReview',
+      component: () => import('@/views/VocabularyReview.vue'),
+    },
+    {
       path: '/vocabulary/:id',
       name: 'VocabularyDetail',
       component: () => import('@/views/VocabularyDetail.vue'),
       props: true,
-    },
-    {
-      path: '/vocabulary/review',
-      name: 'VocabularyReview',
-      component: () => import('@/views/VocabularyReview.vue'),
     },
     {
       path: '/stats',

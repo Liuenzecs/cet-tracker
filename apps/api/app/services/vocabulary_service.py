@@ -1,21 +1,70 @@
 """Service layer for vocabulary notes and entries."""
 
 import datetime as dt
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from app.models.vocabulary import VocabularyEntry, VocabularyNote
 from app.schemas.vocabulary import (
     VocabularyEntryUpdate,
     VocabularyNoteCreate,
 )
+from app.schemas.vocabulary_normalize import (
+    GeneratedVocabularyEntry,
+    SaveGeneratedNoteRequest,
+)
 from app.utils.markdown_parser import parse_vocabulary_markdown
 
 
-def get_notes(db: Session) -> List[VocabularyNote]:
-    """Get all vocabulary notes."""
-    query = select(VocabularyNote).order_by(VocabularyNote.created_at.desc())
+def get_notes(
+    db: Session,
+    exam_type: Optional[str] = None,
+    source_section: Optional[str] = None,
+    source_session_id: Optional[int] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[VocabularyNote], int]:
+    """Get vocabulary notes with optional filtering and pagination."""
+    base_query = select(VocabularyNote)
+    if exam_type:
+        base_query = base_query.where(VocabularyNote.exam_type == exam_type)
+    if source_section:
+        base_query = base_query.where(VocabularyNote.source_section == source_section)
+    if source_session_id is not None:
+        base_query = base_query.where(VocabularyNote.source_session_id == source_session_id)
+
+    # Count total
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = db.exec(count_query).one()
+
+    # Paginate
+    query = base_query.order_by(VocabularyNote.created_at.desc())
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    items = list(db.exec(query).all())
+
+    return items, total
+
+
+def get_review_entries(
+    db: Session,
+    familiarity: Optional[str] = None,
+) -> List[VocabularyEntry]:
+    """Get vocabulary entries for review, filtered by familiarity."""
+    valid_familiarities = ("new", "learning", "familiar", "mastered")
+    if familiarity and familiarity in valid_familiarities:
+        target = [familiarity]
+    else:
+        target = ["new", "learning"]
+
+    query = (
+        select(VocabularyEntry)
+        .where(VocabularyEntry.familiarity.in_(target))
+        .order_by(
+            VocabularyEntry.familiarity.asc(),
+            VocabularyEntry.updated_at.desc(),
+        )
+    )
     return list(db.exec(query).all())
 
 
@@ -75,6 +124,72 @@ def get_entries(db: Session, note_id: int) -> List[VocabularyEntry]:
     return list(db.exec(query).all())
 
 
+def get_entries_paginated(
+    db: Session,
+    note_id: int,
+    page: int = 1,
+    page_size: int = 10,
+    familiarity: Optional[str] = None,
+    q: Optional[str] = None,
+) -> Tuple[List[VocabularyEntry], int]:
+    """Get entries for a note with pagination, filtering, and search."""
+    base_query = select(VocabularyEntry).where(VocabularyEntry.note_id == note_id)
+
+    if familiarity and familiarity in ("new", "learning", "familiar", "mastered"):
+        base_query = base_query.where(VocabularyEntry.familiarity == familiarity)
+
+    if q:
+        base_query = base_query.where(VocabularyEntry.term.contains(q))
+
+    # Count
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = db.exec(count_query).one()
+
+    # Paginate
+    query = base_query.order_by(VocabularyEntry.term.asc())
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    items = list(db.exec(query).all())
+
+    return items, total
+
+
+def get_review_entries_paginated(
+    db: Session,
+    page: int = 1,
+    page_size: int = 1,
+    familiarity: Optional[str] = None,
+    q: Optional[str] = None,
+) -> Tuple[List[VocabularyEntry], int]:
+    """Get review entries with pagination, filtering, and search."""
+    valid_familiarities = ("new", "learning", "familiar", "mastered")
+    if familiarity and familiarity in valid_familiarities:
+        target = [familiarity]
+    else:
+        target = ["new", "learning"]
+
+    base_query = (
+        select(VocabularyEntry)
+        .where(VocabularyEntry.familiarity.in_(target))
+    )
+
+    if q:
+        base_query = base_query.where(VocabularyEntry.term.contains(q))
+
+    # Count
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = db.exec(count_query).one()
+
+    # Paginate
+    query = base_query.order_by(
+        VocabularyEntry.familiarity.asc(),
+        VocabularyEntry.updated_at.desc(),
+    )
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    items = list(db.exec(query).all())
+
+    return items, total
+
+
 def update_entry(
     db: Session, entry_id: int, data: VocabularyEntryUpdate
 ) -> Optional[VocabularyEntry]:
@@ -97,3 +212,80 @@ def update_entry(
     db.commit()
     db.refresh(entry)
     return entry
+
+
+def create_note_from_generated(db: Session, data: SaveGeneratedNoteRequest) -> VocabularyNote:
+    """Create a vocabulary note from AI-generated entries.
+
+    Saves the note with standardized_markdown as raw_markdown,
+    and creates vocabulary_entries from the structured entry data.
+    """
+    note = VocabularyNote(
+        title=data.title,
+        raw_markdown=data.standardized_markdown or data.raw_input,
+        source_session_id=data.source_session_id,
+        exam_type=data.exam_type,
+        paper_name=data.paper_name,
+        source_section=data.source_section,
+    )
+    db.add(note)
+    db.flush()
+
+    for gen_entry in data.entries:
+        # Convert GeneratedVocabularyEntry to JSON-compatible storage format
+        meanings_json = []
+        for m in gen_entry.meanings or []:
+            parts = []
+            if m.pos:
+                parts.append(m.pos)
+            if m.zh:
+                parts.append(m.zh)
+            if m.en:
+                parts.append(f"({m.en})")
+            meanings_json.append(" ".join(parts))
+
+        usages_json = []
+        for u in gen_entry.usages or []:
+            if u.meaning:
+                usages_json.append(f"{u.pattern} — {u.meaning}")
+            else:
+                usages_json.append(u.pattern)
+
+        examples_json = []
+        for e in gen_entry.examples or []:
+            examples_json.append({"en": e.en, "zh": e.zh})
+
+        writing_sentences_json = []
+        for ws in gen_entry.writing_sentences or []:
+            if ws.zh:
+                writing_sentences_json.append(f"{ws.en} — {ws.zh}")
+            else:
+                writing_sentences_json.append(ws.en)
+
+        comparisons_json = []
+        for c in gen_entry.comparisons or []:
+            comparisons_json.append({
+                "left": c.left,
+                "right": c.right,
+                "left_meaning": c.left_meaning,
+                "right_meaning": c.right_meaning,
+            })
+
+        entry = VocabularyEntry(
+            note_id=note.id,
+            term=gen_entry.term,
+            entry_type=gen_entry.entry_type,
+            meanings_json=meanings_json,
+            usages_json=usages_json,
+            examples_json=examples_json,
+            mistake_tips_json=gen_entry.mistake_tips or [],
+            synonyms_json=gen_entry.synonyms or [],
+            comparisons_json=comparisons_json,
+            writing_sentences_json=writing_sentences_json,
+            tags_json=gen_entry.tags or [],
+        )
+        db.add(entry)
+
+    db.commit()
+    db.refresh(note)
+    return note

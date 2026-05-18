@@ -54,7 +54,7 @@ def export_all(db: Session) -> ExportData:
 def _parse_iso_dates(item: Dict[str, Any]) -> Dict[str, Any]:
     """Convert ISO date/datetime strings back to Python date/datetime objects."""
     date_fields = {"date"}
-    datetime_fields = {"created_at", "updated_at", "last_reviewed_at", "next_reviewed_at"}
+    datetime_fields = {"created_at", "updated_at", "last_reviewed_at", "next_review_at"}
 
     result = dict(item)
     for key, value in result.items():

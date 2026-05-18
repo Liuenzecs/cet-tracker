@@ -59,6 +59,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "python-dotenv" },
     { name = "sqlmodel" },
     { name = "uvicorn", extra = ["standard"] },
@@ -74,6 +75,7 @@ dev = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=23.0.0" },
     { name = "fastapi", specifier = ">=0.110.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29.0" },

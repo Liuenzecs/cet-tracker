@@ -1,4 +1,3 @@
-<script setup lang="ts">
 import { ElMessageBox } from 'element-plus'
 
 export function useConfirm() {
@@ -22,4 +21,3 @@ export function useConfirm() {
 
   return { confirm }
 }
-</script>

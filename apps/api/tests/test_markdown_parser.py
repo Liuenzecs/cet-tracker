@@ -164,12 +164,13 @@ pending vs imminent
     comparisons = results[0]["comparisons_json"]
     assert len(comparisons) >= 1
     comp = comparisons[0]
-    assert comp["term_a"].lower() == "pending"
-    assert comp["term_b"].lower() == "imminent"
+    # v0.2.0 uses normalized format: left/right instead of term_a/term_b
+    assert comp["left"].lower() == "pending"
+    assert comp["right"].lower() == "imminent"
 
 
 def test_parse_quick_review():
-    """Quick review section is stored in meanings as a special entry."""
+    """Quick review section is stored in meanings after cleaning."""
     md = """## pending
 
 ### 快速复习表
@@ -179,13 +180,9 @@ def test_parse_quick_review():
     results = parse_vocabulary_markdown(md)
     assert len(results) == 1
     meanings = results[0]["meanings_json"]
-    # Should have a quick_review entry
-    review_entry = None
-    for m in meanings:
-        if isinstance(m, dict) and m.get("type") == "quick_review":
-            review_entry = m
-            break
-    assert review_entry is not None
+    # v0.2.0: quick_review items are cleaned and stored as plain strings
+    assert len(meanings) >= 1
+    assert any("待处理" in str(m) for m in meanings)
 
 
 def test_parser_never_throws():

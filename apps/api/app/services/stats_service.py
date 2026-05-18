@@ -60,25 +60,23 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
             TrendPoint(date=s.date.isoformat(), accuracy=accuracy)
         )
 
-    # Reading trend: last 5 sessions that have reading results
+    # Reading trend: last 10 reading results (across sessions), each point includes question_type
     reading_trend: List[TrendPoint] = []
     reading_sessions = [s for s in all_sessions if s.session_type in ("full_mock", "reading")]
     for s in reading_sessions[:5]:
-        # Average reading accuracy across all reading results for this session
         rr_list = db.exec(
             select(ReadingResult).where(ReadingResult.session_id == s.id)
         ).all()
-        if rr_list:
-            acc_vals = []
-            for rr in rr_list:
-                if rr.total_questions > 0:
-                    acc_vals.append(rr.correct_count / rr.total_questions)
-            accuracy = round(sum(acc_vals) / len(acc_vals) * 100, 1) if acc_vals else None
-        else:
-            accuracy = None
-        reading_trend.append(
-            TrendPoint(date=s.date.isoformat(), accuracy=accuracy)
-        )
+        for rr in rr_list:
+            if rr.total_questions > 0:
+                accuracy = round(rr.correct_count / rr.total_questions * 100, 1)
+                reading_trend.append(
+                    TrendPoint(
+                        date=s.date.isoformat(),
+                        accuracy=accuracy,
+                        question_type=rr.question_type,
+                    )
+                )
 
     # Vocabulary stats
     all_entries = db.exec(select(VocabularyEntry)).all()
@@ -102,6 +100,7 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
                 paper_name=s.paper_name,
                 session_type=s.session_type,
                 date=s.date.isoformat(),
+                duration_minutes=s.duration_minutes,
             )
         )
 

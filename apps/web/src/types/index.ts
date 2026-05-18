@@ -127,7 +127,12 @@ export interface VocabularyEntry {
 }
 
 export interface VocabularyEntryUpdate {
+  term?: string
+  entry_type?: string
   familiarity?: string
+  last_reviewed_at?: string
+  next_review_at?: string
+  review_count?: number
   meanings_json?: string[]
   usages_json?: string[]
   examples_json?: Array<{ en: string; zh: string }>
@@ -135,6 +140,7 @@ export interface VocabularyEntryUpdate {
   synonyms_json?: string[]
   comparisons_json?: any[]
   writing_sentences_json?: string[]
+  tags_json?: string[]
 }
 
 // Stats
@@ -145,7 +151,7 @@ export interface DashboardStats {
   avg_listening_accuracy: number | null
   avg_reading_accuracy: number | null
   listening_trend: Array<{ date: string; accuracy: number }>
-  reading_trend: Array<{ question_type: string; date: string; accuracy: number }>
+  reading_trend: Array<{ date: string; accuracy: number; question_type: string }>
   total_vocabulary: number
   vocabulary_by_familiarity: Record<string, number>
   pending_review: number
@@ -163,6 +169,112 @@ export interface ExportData {
 
 export interface ParseResult {
   entries: VocabularyEntry[]
+}
+
+// AI Normalization
+export interface NormalizedMeaning {
+  pos: string
+  zh: string
+  en: string
+}
+
+export interface NormalizedUsage {
+  pattern: string
+  meaning: string
+}
+
+export interface NormalizedExample {
+  en: string
+  zh: string
+}
+
+export interface NormalizedComparison {
+  left: string
+  right: string
+  left_meaning: string
+  right_meaning: string
+}
+
+export interface NormalizedEntry {
+  term: string
+  entry_type: string
+  meanings: NormalizedMeaning[]
+  usages: NormalizedUsage[]
+  examples: NormalizedExample[]
+  mistake_tips: string[]
+  synonyms: string[]
+  comparisons: NormalizedComparison[]
+  writing_sentences: string[]
+}
+
+export interface NormalizeMarkdownResponse {
+  title: string
+  entries: NormalizedEntry[]
+  warnings: string[]
+  source: string
+}
+
+export interface AIProviderStatus {
+  enabled: boolean
+  provider: string
+  configured: boolean
+  message: string
+}
+
+// v0.2.1 Word-list generation
+export interface GenerationOptions {
+  detail_level: 'brief' | 'standard' | 'detailed'
+  example_style: 'cet' | 'academic' | 'daily'
+  include_writing_sentences: boolean
+  include_comparisons: boolean
+  language: string
+}
+
+export interface GenerateFromWordsRequest {
+  title: string
+  exam_type: string
+  paper_name?: string
+  source_section: string
+  source_session_id?: number | null
+  words: string[]
+  options: GenerationOptions
+}
+
+export interface GeneratedWritingSentence {
+  en: string
+  zh: string
+}
+
+export interface GeneratedVocabularyEntry {
+  term: string
+  entry_type: string
+  meanings: NormalizedMeaning[]
+  usages: NormalizedUsage[]
+  examples: NormalizedExample[]
+  mistake_tips: string[]
+  synonyms: string[]
+  comparisons: NormalizedComparison[]
+  writing_sentences: GeneratedWritingSentence[]
+  tags: string[]
+}
+
+export interface GenerateFromWordsResponse {
+  title: string
+  standardized_markdown: string
+  entries: GeneratedVocabularyEntry[]
+  warnings: string[]
+  source: string
+}
+
+export interface SaveGeneratedNoteRequest {
+  title: string
+  raw_input: string
+  standardized_markdown: string
+  source_session_id?: number | null
+  exam_type?: string
+  paper_name?: string
+  source_section: string
+  entries: GeneratedVocabularyEntry[]
 }
 
 // Constants
