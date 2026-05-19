@@ -21,6 +21,9 @@ class ListeningResult(SQLModel, table=True):
     wrong_questions_json: Optional[List] = Field(default=None, sa_column=Column(JSON))
     mistake_tags_json: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     reflection: Optional[str] = Field(default=None)
+    intensive_status: str = Field(default="not_started", max_length=20)  # not_started / in_progress / completed
+    intensive_note: Optional[str] = Field(default=None)
+    intensive_completed_at: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

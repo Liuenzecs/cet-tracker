@@ -142,7 +142,7 @@ async def normalize_markdown(raw_markdown: str, provider: str = "deepseek") -> D
                     {"role": "user", "content": raw_markdown},
                 ],
                 "temperature": 0.1,
-                "max_tokens": 4096,
+                "max_tokens": 16384,
             }
 
             response = await client.post(api_url, json=payload, headers=headers)
@@ -492,7 +492,7 @@ async def generate_from_words(
                     {"role": "user", "content": user_prompt},
                 ],
                 "temperature": 0.3,
-                "max_tokens": 8192,
+                "max_tokens": 16384,
             }
 
             response = await client.post(api_url, json=payload, headers=headers)
@@ -669,6 +669,114 @@ async def generate_from_words(
             "warnings": [f"AI 生成失败: {str(e)}"],
             "source": "ai",
         }
+
+
+async def generate_single_word(
+    word: str,
+    options: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Generate vocabulary entry for a single word using AI.
+
+    Returns a dict with 'entry' (GeneratedVocabularyEntry) and 'standardized_markdown'.
+    Does NOT save to database.
+    """
+    config = _get_ai_config()
+    available, message = is_ai_configured()
+
+    if not available:
+        return {"entry": None, "standardized_markdown": "", "warnings": [message], "source": "ai"}
+
+    if options is None:
+        options = {}
+
+    timeout = config["timeout"]
+
+    detail_map = {
+        "brief": "只包含 core 释义和 1 个例句",
+        "standard": "包含释义、常见用法、例句、易错点、同义词",
+        "detailed": "全面展开所有字段",
+    }
+    detail_instruction = detail_map.get(options.get("detail_level", "standard"), detail_map["standard"])
+
+    user_prompt = f"""请为以下单词或短语生成 CET 词汇学习笔记。
+
+单词: {word}
+
+要求: {detail_instruction}
+例句必须原创，适合 CET 学习者。
+
+输出严格 JSON（不要 Markdown 代码块）:
+{{"entry": {{"term": "...", "entry_type": "word|phrase", "meanings": [{{"pos": "...", "zh": "...", "en": "..."}}], "usages": [{{"pattern": "...", "meaning": "..."}}], "examples": [{{"en": "...", "zh": "..."}}], "mistake_tips": ["..."], "synonyms": ["..."], "comparisons": [], "writing_sentences": [{{"en": "...", "zh": "..."}}], "tags": []}}, "standardized_markdown": "..."}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=float(timeout)) as client:
+            headers = {
+                "Authorization": f"Bearer {config['api_key']}",
+                "Content-Type": "application/json",
+            }
+            api_url = f"{config['base_url'].rstrip('/')}/v1/chat/completions"
+
+            payload = {
+                "model": config["model"],
+                "messages": [
+                    {"role": "system", "content": _build_generation_system_prompt()},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 2048,
+            }
+
+            response = await client.post(api_url, json=payload, headers=headers)
+
+            if response.status_code != 200:
+                return {"entry": None, "standardized_markdown": "", "warnings": [f"AI API HTTP {response.status_code}"], "source": "ai"}
+
+            data = response.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+            if not content:
+                return {"entry": None, "standardized_markdown": "", "warnings": ["AI 返回空内容"], "source": "ai"}
+
+            json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)
+            if json_match:
+                content = json_match.group(1).strip()
+            else:
+                start = content.find("{")
+                end = content.rfind("}")
+                if start >= 0 and end > start:
+                    content = content[start:end + 1]
+
+            parsed = json.loads(content)
+            entry_data = parsed.get("entry", {}) if isinstance(parsed, dict) else {}
+            standardized_md = parsed.get("standardized_markdown", "") if isinstance(parsed, dict) else ""
+
+            if not entry_data:
+                return {"entry": None, "standardized_markdown": standardized_md, "warnings": ["AI 未返回有效词条"], "source": "ai"}
+
+            entry = GeneratedVocabularyEntry(
+                term=str(entry_data.get("term", word)),
+                entry_type=str(entry_data.get("entry_type", "word")),
+                meanings=[NormalizedMeaning(pos=str(m.get("pos", "")), zh=str(m.get("zh", "")), en=str(m.get("en", ""))) for m in (entry_data.get("meanings") or [])],
+                usages=[NormalizedUsage(pattern=str(u.get("pattern", "")), meaning=str(u.get("meaning", ""))) for u in (entry_data.get("usages") or [])],
+                examples=[NormalizedExample(en=str(e.get("en", "")), zh=str(e.get("zh", ""))) for e in (entry_data.get("examples") or [])],
+                mistake_tips=[str(s) for s in (entry_data.get("mistake_tips") or [])],
+                synonyms=[str(s) for s in (entry_data.get("synonyms") or [])],
+                comparisons=[],
+                writing_sentences=[GeneratedWritingSentence(en=str(ws.get("en", "")), zh=str(ws.get("zh", ""))) for ws in (entry_data.get("writing_sentences") or [])],
+                tags=[str(t) for t in (entry_data.get("tags") or [])],
+            )
+
+            return {
+                "entry": entry.model_dump(),
+                "standardized_markdown": standardized_md,
+                "warnings": [],
+                "source": "ai",
+            }
+
+    except httpx.TimeoutException:
+        return {"entry": None, "standardized_markdown": "", "warnings": [f"AI API 超时（{timeout}秒）"], "source": "ai"}
+    except Exception as e:
+        return {"entry": None, "standardized_markdown": "", "warnings": [f"生成失败: {str(e)}"], "source": "ai"}
 
 
 def validate_word_input(raw_input: str) -> List[str]:

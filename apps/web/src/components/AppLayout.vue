@@ -46,6 +46,7 @@ import {
   DataAnalysis,
   Collection,
   Reading,
+  Notebook,
   Setting,
 } from '@element-plus/icons-vue'
 
@@ -63,6 +64,7 @@ const navItems: NavItem[] = [
   { path: '/vocabulary', label: '词汇笔记', icon: Collection },
   { path: '/vocabulary/review', label: '复习', icon: Reading },
   { path: '/stats', label: '统计', icon: DataAnalysis },
+  { path: '/reports', label: '报告', icon: Notebook },
 ]
 
 function isActive(path: string): boolean {

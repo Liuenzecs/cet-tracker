@@ -36,6 +36,46 @@
         <StatCard :icon="Collection" label="词汇总数" :value="stats?.total_vocabulary ?? 0" color="#7C3AED" />
       </div>
 
+      <!-- v0.3.0 Quick cards -->
+      <div class="quick-cards-row">
+        <div class="quick-card due-vocab" @click="router.push('/vocabulary/review?due=today')">
+          <div class="qc-icon"><el-icon :size="20"><Clock /></el-icon></div>
+          <div class="qc-body">
+            <span class="qc-value">{{ stats?.due_vocabulary_count ?? 0 }}</span>
+            <span class="qc-label">今日待复习</span>
+          </div>
+        </div>
+        <div class="quick-card mastery" @click="router.push('/stats')">
+          <div class="qc-icon"><el-icon :size="20"><TrendCharts /></el-icon></div>
+          <div class="qc-body">
+            <span class="qc-value">{{ (stats?.mastery_rate ?? 0).toFixed(0) }}%</span>
+            <span class="qc-label">词汇掌握率</span>
+          </div>
+        </div>
+        <div class="quick-card tasks" @click="router.push('/sessions')">
+          <div class="qc-icon"><el-icon :size="20"><List /></el-icon></div>
+          <div class="qc-body">
+            <span class="qc-value">{{ stats?.pending_review_tasks_count ?? 0 }}</span>
+            <span class="qc-label">待复盘任务</span>
+          </div>
+        </div>
+        <div class="quick-card intensive" @click="router.push('/sessions')">
+          <div class="qc-icon"><el-icon :size="20"><Headset /></el-icon></div>
+          <div class="qc-body">
+            <span class="qc-value">{{ stats?.intensive_pending_count ?? 0 }}</span>
+            <span class="qc-label">待精听训练</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="quick-actions">
+        <el-button type="primary" @click="router.push('/sessions/new')"><el-icon><Plus /></el-icon>新增训练记录</el-button>
+        <el-button type="primary" plain @click="router.push('/vocabulary/import')"><el-icon><MagicStick /></el-icon>输入单词生成笔记</el-button>
+        <el-button type="success" plain @click="router.push('/vocabulary/review?due=today')"><el-icon><Clock /></el-icon>今日复习</el-button>
+        <el-button plain @click="router.push('/reports')"><el-icon><Document /></el-icon>查看周报</el-button>
+      </div>
+
       <!-- Charts row -->
       <div class="charts-grid">
         <SectionCard title="听力正确率趋势">
@@ -107,7 +147,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { DataAnalysis, Headset, Reading, Collection, ArrowRight, Notebook } from '@element-plus/icons-vue'
+import { DataAnalysis, Headset, Reading, Collection, ArrowRight, Notebook, Clock, TrendCharts, List, Plus, MagicStick, Document } from '@element-plus/icons-vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { LineChart, PieChart } from 'echarts/charts'
@@ -378,5 +418,41 @@ onMounted(async () => {
 .rs-duration {
   font-size: var(--text-caption);
   color: var(--color-text-secondary);
+}
+
+.quick-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+@media (max-width: 768px) { .quick-cards-row { grid-template-columns: repeat(2, 1fr); } }
+
+.quick-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--color-border);
+}
+.quick-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-card); }
+.quick-card.due-vocab { background: #FFF7ED; border-color: #FDBA74; }
+.quick-card.mastery { background: #F0FDF4; border-color: #86EFAC; }
+.quick-card.tasks { background: #EFF6FF; border-color: #93C5FD; }
+.quick-card.intensive { background: #FEF3C7; border-color: #FCD34D; }
+
+.qc-icon { color: var(--color-text-tertiary); flex-shrink: 0; }
+.qc-body { display: flex; flex-direction: column; }
+.qc-value { font-size: 24px; font-weight: 800; color: var(--color-text-primary); }
+.qc-label { font-size: var(--text-caption); color: var(--color-text-tertiary); }
+
+.quick-actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
 }
 </style>

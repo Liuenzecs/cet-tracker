@@ -265,6 +265,53 @@ Tables are created automatically on first application startup using SQLModel's `
 3. `reading_results` (depends on exam_sessions)
 4. `vocabulary_notes` (depends on exam_sessions for FK, but nullable)
 5. `vocabulary_entries` (depends on vocabulary_notes)
+6. `vocabulary_review_logs` (v0.3.0; depends on vocabulary_entries and vocabulary_notes)
+7. `review_tasks` (v0.3.0; depends on exam_sessions)
+
+### v0.3.0: vocabulary_review_logs
+
+```sql
+CREATE TABLE vocabulary_review_logs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id        INTEGER NOT NULL,
+    note_id         INTEGER NOT NULL,
+    old_familiarity VARCHAR(20) NOT NULL,
+    new_familiarity VARCHAR(20) NOT NULL,
+    action          VARCHAR(20) NOT NULL,  -- again / hard / good / easy / manual
+    reviewed_at     DATETIME NOT NULL,
+    note            TEXT,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (entry_id) REFERENCES vocabulary_entries(id) ON DELETE CASCADE,
+    FOREIGN KEY (note_id) REFERENCES vocabulary_notes(id) ON DELETE CASCADE
+);
+```
+
+### v0.3.0: review_tasks
+
+```sql
+CREATE TABLE review_tasks (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id    INTEGER NOT NULL,
+    task_type     VARCHAR(50) NOT NULL,  -- listening_review / reading_review / vocabulary_review / ...
+    title         VARCHAR(200) NOT NULL,
+    description   TEXT,
+    status        VARCHAR(20) NOT NULL DEFAULT 'todo',  -- todo / doing / done / skipped
+    priority      VARCHAR(10) NOT NULL DEFAULT 'medium',  -- low / medium / high
+    due_date      DATE,
+    completed_at  DATETIME,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
+);
+```
+
+### v0.3.0: listening_results new columns
+
+```sql
+ALTER TABLE listening_results ADD COLUMN intensive_status VARCHAR(20) NOT NULL DEFAULT 'not_started';
+ALTER TABLE listening_results ADD COLUMN intensive_note TEXT;
+ALTER TABLE listening_results ADD COLUMN intensive_completed_at DATETIME;
+```
 
 ### Future Migrations (v1.1+)
 

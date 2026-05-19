@@ -19,7 +19,8 @@ data/*.sqlite3
 
 # Environment
 .env
-.env.local
+.env.*
+!.env.example
 
 # IDE
 .vscode/
@@ -41,3 +42,8 @@ Thumbs.db
 coverage/
 htmlcov/
 .pytest_cache/
+
+# Generated artifacts
+cet-tracker-clean.zip
+apps/api/test_rt.db
+apps/api/test_ci.db

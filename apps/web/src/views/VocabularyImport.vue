@@ -36,33 +36,50 @@
           <!-- Form -->
           <div class="import-form-card">
             <el-form ref="genFormRef" :model="genForm" :rules="genRules" label-position="top" size="large">
-              <el-form-item label="笔记标题" prop="title">
-                <el-input v-model="genForm.title" placeholder="如 CET6 阅读生词笔记（留空自动生成）" />
+              <!-- Create new / Append toggle -->
+              <el-form-item label="操作模式">
+                <el-radio-group v-model="saveMode" size="default">
+                  <el-radio-button value="new">创建新笔记</el-radio-button>
+                  <el-radio-button value="append">追加到已有笔记</el-radio-button>
+                </el-radio-group>
               </el-form-item>
 
-              <el-row :gutter="16">
-                <el-col :span="12">
-                  <el-form-item label="考试类型">
-                    <el-radio-group v-model="genForm.exam_type">
-                      <el-radio-button value="CET4">CET-4</el-radio-button>
-                      <el-radio-button value="CET6">CET-6</el-radio-button>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <el-form-item label="来源模块" prop="source_section">
-                    <el-select v-model="genForm.source_section" style="width: 100%">
-                      <el-option v-for="ss in SOURCE_SECTIONS" :key="ss.value" :label="ss.label" :value="ss.value" />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <!-- Append: select note -->
+              <el-form-item v-if="saveMode === 'append'" label="选择目标笔记" prop="appendNoteId">
+                <el-select v-model="appendNoteId" placeholder="选择要追加的词汇笔记" filterable style="width: 100%">
+                  <el-option v-for="n in existingNotes" :key="n.id" :label="`${n.title} (${n.entry_count ?? 0} 词)`" :value="n.id" />
+                </el-select>
+              </el-form-item>
 
-              <el-row :gutter="16">
-                <el-col :span="12">
-                  <el-form-item label="来源训练">
-                    <el-select v-model="genForm.source_session_id" placeholder="（可选）选择关联训练" clearable filterable style="width: 100%">
-                      <el-option v-for="s in sessions" :key="s.id" :label="`${s.paper_name} (${s.date})`" :value="s.id" />
+              <!-- New note: title & metadata -->
+              <template v-if="saveMode === 'new'">
+                <el-form-item label="笔记标题" prop="title">
+                  <el-input v-model="genForm.title" placeholder="如 CET6 阅读生词笔记（留空自动生成）" />
+                </el-form-item>
+
+                <el-row :gutter="16">
+                  <el-col :span="12">
+                    <el-form-item label="考试类型">
+                      <el-radio-group v-model="genForm.exam_type">
+                        <el-radio-button value="CET4">CET-4</el-radio-button>
+                        <el-radio-button value="CET6">CET-6</el-radio-button>
+                      </el-radio-group>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="来源模块" prop="source_section">
+                      <el-select v-model="genForm.source_section" style="width: 100%">
+                        <el-option v-for="ss in SOURCE_SECTIONS" :key="ss.value" :label="ss.label" :value="ss.value" />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+
+                <el-row :gutter="16">
+                  <el-col :span="12">
+                    <el-form-item label="来源训练">
+                      <el-select v-model="genForm.source_session_id" placeholder="（可选）选择关联训练" clearable filterable style="width: 100%">
+                        <el-option v-for="s in sessions" :key="s.id" :label="`${s.paper_name} (${s.date})`" :value="s.id" />
                     </el-select>
                   </el-form-item>
                 </el-col>
@@ -72,6 +89,7 @@
                   </el-form-item>
                 </el-col>
               </el-row>
+              </template>
 
               <el-form-item label="单词或短语列表" prop="words">
                 <template #label>
@@ -156,48 +174,60 @@
               </el-collapse-item>
             </el-collapse>
 
-            <!-- Entry cards -->
+            <!-- Entry cards (collapsible) -->
             <div class="gen-entry-list">
-              <div v-for="(entry, idx) in genEntries" :key="idx" class="gen-entry-card">
-                <div class="gen-entry-header">
+              <div v-for="(entry, idx) in genEntries" :key="idx" class="gen-entry-card" :class="{ expanded: expandedSet.has(idx) }">
+                <div class="gen-entry-header" @click="toggleExpand(idx)">
                   <span class="gen-entry-idx">{{ idx + 1 }}</span>
-                  <el-input v-model="entry.term" size="small" class="gen-term-input" />
+                  <span class="gen-entry-term-text">{{ entry.term }}</span>
                   <el-tag size="small">{{ entry.entry_type }}</el-tag>
-                  <el-button size="small" type="danger" text @click="removeGenEntry(idx)"><el-icon><Delete /></el-icon></el-button>
+                  <span class="gen-summary">{{ entrySummary(entry) }}</span>
+                  <el-icon class="gen-expand-icon" :class="{ rotated: expandedSet.has(idx) }"><ArrowDown /></el-icon>
+                  <el-button size="small" type="danger" text @click.stop="removeGenEntry(idx)"><el-icon><Delete /></el-icon></el-button>
                 </div>
-                <div class="gen-entry-body">
-                  <!-- Meanings -->
+                <div v-if="expandedSet.has(idx)" class="gen-entry-body">
+                  <div class="gen-edit-row">
+                    <el-input v-model="entry.term" size="small" class="gen-term-input" placeholder="词汇" />
+                  </div>
                   <div v-if="entry.meanings?.length" class="gen-section">
-                    <span class="gen-label">释义:</span>
-                    <span v-for="(m, mi) in entry.meanings" :key="mi" class="gen-meaning">
-                      <template v-if="m.pos">{{ m.pos }} </template>
-                      {{ m.zh }}<template v-if="mi < entry.meanings.length - 1">；</template>
-                    </span>
+                    <span class="gen-label">释义</span>
+                    <div v-for="(m, mi) in entry.meanings" :key="mi" class="gen-line">
+                      <template v-if="m.pos"><el-tag size="small" type="info" style="margin-right:4px">{{ m.pos }}</el-tag></template>
+                      {{ m.zh }}<template v-if="m.en"> ({{ m.en }})</template>
+                    </div>
                   </div>
-                  <!-- Usages -->
                   <div v-if="entry.usages?.length" class="gen-section">
-                    <span class="gen-label">用法:</span>
-                    <span v-for="(u, ui) in entry.usages" :key="ui">
-                      {{ u.pattern }}<template v-if="u.meaning"> — {{ u.meaning }}</template><template v-if="ui < entry.usages.length - 1">；</template>
-                    </span>
+                    <span class="gen-label">常见用法</span>
+                    <div v-for="(u, ui) in entry.usages" :key="ui" class="gen-line">
+                      <code>{{ u.pattern }}</code><template v-if="u.meaning"> — {{ u.meaning }}</template>
+                    </div>
                   </div>
-                  <!-- Examples -->
                   <div v-if="entry.examples?.length" class="gen-section">
-                    <span class="gen-label">例句:</span>
-                    <div v-for="(ex, ei) in entry.examples" :key="ei" class="gen-example">
+                    <span class="gen-label">例句</span>
+                    <div v-for="(ex, ei) in entry.examples" :key="ei" class="gen-line">
                       <span class="gen-ex-en">{{ ex.en }}</span>
                       <span v-if="ex.zh" class="gen-ex-zh"> — {{ ex.zh }}</span>
                     </div>
                   </div>
-                  <!-- Mistakes -->
                   <div v-if="entry.mistake_tips?.length" class="gen-section">
-                    <span class="gen-label">易错点:</span>
-                    <span v-for="(t, ti) in entry.mistake_tips" :key="ti">{{ t }}<template v-if="ti < entry.mistake_tips.length - 1">；</template></span>
+                    <span class="gen-label">易错点</span>
+                    <div v-for="(t, ti) in entry.mistake_tips" :key="ti" class="gen-line gen-mistake">{{ t }}</div>
                   </div>
-                  <!-- Synonyms -->
                   <div v-if="entry.synonyms?.length" class="gen-section">
-                    <span class="gen-label">同义词:</span>
-                    <el-tag v-for="(s, si) in entry.synonyms" :key="si" size="small" type="success" style="margin-right: 4px">{{ s }}</el-tag>
+                    <span class="gen-label">同义替换</span>
+                    <el-tag v-for="(s, si) in entry.synonyms" :key="si" size="small" type="success" style="margin-right:4px;margin-bottom:2px">{{ s }}</el-tag>
+                  </div>
+                  <div v-if="entry.comparisons?.length" class="gen-section">
+                    <span class="gen-label">易混词对比</span>
+                    <div v-for="(c, ci) in entry.comparisons" :key="ci" class="gen-line">
+                      {{ c.left }} vs {{ c.right }}<template v-if="c.left_meaning"> — {{ c.left_meaning }} / {{ c.right_meaning }}</template>
+                    </div>
+                  </div>
+                  <div v-if="entry.writing_sentences?.length" class="gen-section">
+                    <span class="gen-label">写作可用句</span>
+                    <div v-for="(ws, wi) in entry.writing_sentences" :key="wi" class="gen-line gen-writing">
+                      {{ ws.en }}<template v-if="ws.zh"> — {{ ws.zh }}</template>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -339,17 +369,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { ArrowRight, MagicStick, Delete } from '@element-plus/icons-vue'
+import { ArrowRight, ArrowDown, MagicStick, Delete } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { createVocabularyNote, parseMarkdown, normalizeMarkdown, getAIStatus, generateFromWords, saveGeneratedNote } from '@/api/vocabulary'
+import { createVocabularyNote, parseMarkdown, normalizeMarkdown, getAIStatus, generateFromWords, saveGeneratedNote, appendEntriesToNote, getVocabularyNotes } from '@/api/vocabulary'
 import { getSessions } from '@/api/sessions'
 import { SOURCE_SECTIONS } from '@/types'
 import type { ExamSession, VocabularyEntry, GeneratedVocabularyEntry, GenerationOptions } from '@/types'
 
 const router = useRouter()
+const route = useRoute()
 
 // ── Common state ──
 const activeTab = ref('generate')
@@ -366,6 +397,27 @@ const genPreview = ref(false)
 const genEntries = ref<GeneratedVocabularyEntry[]>([])
 const genWarnings = ref<string[]>([])
 const genStandardizedMarkdown = ref('')
+const expandedSet = ref<Set<number>>(new Set())
+const saveMode = ref<'new' | 'append'>('new')
+const appendNoteId = ref<number | null>(null)
+const existingNotes = ref<{ id: number; title: string; entry_count: number }[]>([])
+
+function toggleExpand(idx: number) {
+  const s = new Set(expandedSet.value)
+  if (s.has(idx)) { s.delete(idx) } else { s.add(idx) }
+  expandedSet.value = s
+}
+
+function entrySummary(entry: GeneratedVocabularyEntry): string {
+  const parts: string[] = []
+  if (entry.meanings?.length) {
+    const m = entry.meanings[0]
+    parts.push([m.pos, m.zh].filter(Boolean).join(' '))
+  }
+  if (entry.usages?.length) parts.push(`${entry.usages.length} 用法`)
+  if (entry.examples?.length) parts.push(`${entry.examples.length} 例句`)
+  return parts.join('  ·  ')
+}
 const genForm = reactive({
   title: '',
   exam_type: 'CET6',
@@ -398,6 +450,7 @@ function clearWords() {
   wordsText.value = ''
   genPreview.value = false
   genEntries.value = []
+  expandedSet.value = new Set()
 }
 
 function removeGenEntry(idx: number) {
@@ -456,6 +509,7 @@ async function handleGenerate() {
     genEntries.value = data?.entries ?? []
     genWarnings.value = data?.warnings ?? []
     genStandardizedMarkdown.value = data?.standardized_markdown ?? ''
+    expandedSet.value = new Set()
     genPreview.value = true
 
     if (genEntries.value.length === 0 && genWarnings.value.length > 0) {
@@ -479,18 +533,32 @@ async function handleSaveGenerated() {
   }
   savingGen.value = true
   try {
-    const res = await saveGeneratedNote({
-      title: genForm.title || `${genForm.exam_type} 词汇笔记 ${new Date().toISOString().slice(0, 10)}`,
-      raw_input: wordsText.value,
-      standardized_markdown: genStandardizedMarkdown.value,
-      source_session_id: genForm.source_session_id ?? null,
-      exam_type: genForm.exam_type,
-      paper_name: genForm.paper_name,
-      source_section: genForm.source_section,
-      entries: genEntries.value,
-    })
-    ElMessage.success(`词汇笔记已创建，共 ${res.data.entry_count} 词`)
-    router.push(`/vocabulary/${res.data.id}`)
+    if (saveMode.value === 'append' && appendNoteId.value) {
+      // Append to existing note
+      const res = await appendEntriesToNote(appendNoteId.value, {
+        title: '',
+        raw_input: wordsText.value,
+        standardized_markdown: genStandardizedMarkdown.value,
+        source_section: 'other',
+        entries: genEntries.value,
+      })
+      ElMessage.success(`已追加 ${res.data.appended_count} 个词条`)
+      router.push(`/vocabulary/${res.data.note_id}`)
+    } else {
+      // Create new note
+      const res = await saveGeneratedNote({
+        title: genForm.title || `${genForm.exam_type} 词汇笔记 ${new Date().toISOString().slice(0, 10)}`,
+        raw_input: wordsText.value,
+        standardized_markdown: genStandardizedMarkdown.value,
+        source_session_id: genForm.source_session_id ?? null,
+        exam_type: genForm.exam_type,
+        paper_name: genForm.paper_name,
+        source_section: genForm.source_section,
+        entries: genEntries.value,
+      })
+      ElMessage.success(`词汇笔记已创建，共 ${res.data.entry_count} 词`)
+      router.push(`/vocabulary/${res.data.id}`)
+    }
   } catch {
     ElMessage.error('保存失败')
   } finally {
@@ -584,7 +652,42 @@ async function checkAIStatus() {
     aiStatusMessage.value = res.data?.message ?? ''
   } catch { /* */ }
 }
-onMounted(() => { loadSessions(); checkAIStatus() })
+async function loadExistingNotes() {
+  try {
+    const res = await getVocabularyNotes({ page_size: 200 })
+    existingNotes.value = (res.data?.items ?? []).map((n: any) => ({
+      id: n.id, title: n.title, entry_count: n.entry_count ?? 0,
+    }))
+  } catch { /* */ }
+}
+
+watch(saveMode, (mode) => {
+  if (mode === 'append' && existingNotes.value.length === 0) {
+    loadExistingNotes()
+  }
+})
+
+onMounted(async () => {
+  await loadSessions()
+  checkAIStatus()
+  loadExistingNotes()
+
+  // Auto-fill from session_id query param
+  const sid = route.query?.session_id
+  if (sid) {
+    const sessionId = parseInt(sid as string)
+    genForm.source_session_id = sessionId
+    mdForm.source_session_id = sessionId
+    // Look up session to auto-fill exam_type and paper_name
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (session) {
+      genForm.exam_type = session.exam_type
+      genForm.paper_name = session.paper_name
+      mdForm.exam_type = session.exam_type
+      mdForm.paper_name = session.paper_name
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -722,20 +825,26 @@ onMounted(() => { loadSessions(); checkAIStatus() })
   white-space: pre-wrap;
 }
 
-/* Gen entries */
-.gen-entry-list { display: flex; flex-direction: column; gap: var(--space-md); }
+/* Gen entries (collapsible) */
+.gen-entry-list { display: flex; flex-direction: column; gap: 6px; }
 .gen-entry-card {
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   overflow: hidden;
+  transition: border-color 0.15s;
 }
+.gen-entry-card:hover { border-color: var(--color-primary); }
 .gen-entry-header {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg);
+  padding: 6px var(--space-md);
+  cursor: pointer;
+  user-select: none;
+  min-height: 36px;
+}
+.gen-entry-card.expanded .gen-entry-header {
   border-bottom: 1px solid var(--color-border-light);
 }
 .gen-entry-idx {
@@ -750,14 +859,51 @@ onMounted(() => { loadSessions(); checkAIStatus() })
   font-weight: 600;
   flex-shrink: 0;
 }
-.gen-term-input { width: 140px; }
-.gen-entry-body { padding: var(--space-sm) var(--space-md); font-size: var(--text-caption); }
-.gen-section { margin-bottom: var(--space-xs); line-height: 1.6; }
-.gen-label { font-weight: 600; color: var(--color-text-tertiary); margin-right: var(--space-xs); }
-.gen-meaning { color: var(--color-text-primary); }
-.gen-example { padding-left: var(--space-md); color: var(--color-text-secondary); }
+.gen-entry-term-text {
+  font-weight: 600;
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  min-width: 80px;
+}
+.gen-summary {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gen-expand-icon {
+  color: var(--color-text-tertiary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.gen-expand-icon.rotated { transform: rotate(180deg); }
+.gen-entry-body {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-caption);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.gen-edit-row { margin-bottom: var(--space-xs); }
+.gen-term-input { width: 180px; }
+.gen-section { line-height: 1.7; }
+.gen-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.gen-line { padding: 2px 0; color: var(--color-text-primary); }
+.gen-line code { font-size: 12px; background: var(--color-bg); padding: 1px 5px; border-radius: 3px; }
+.gen-line.gen-mistake { color: #92400E; }
+.gen-line.gen-writing { font-style: italic; color: var(--color-primary-dark); }
 .gen-ex-en { font-weight: 500; }
-.gen-ex-zh { color: var(--color-text-tertiary); }
+.gen-ex-zh { color: var(--color-text-tertiary); margin-left: 2px; }
 
 /* Help panel */
 .help-content { font-size: var(--text-body); color: var(--color-text-secondary); line-height: 1.8; }

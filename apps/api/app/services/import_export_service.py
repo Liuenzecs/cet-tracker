@@ -84,8 +84,11 @@ def import_all(db: Session, data: ExportData) -> ImportResult:
     db.exec(text("DELETE FROM listening_results"))
     db.exec(text("DELETE FROM exam_sessions"))
 
-    # Reset autoincrement on SQLite
-    db.exec(text("DELETE FROM sqlite_sequence"))
+    # Reset autoincrement on SQLite (table only exists if AUTOINCREMENT columns defined)
+    try:
+        db.exec(text("DELETE FROM sqlite_sequence"))
+    except Exception:
+        pass  # sqlite_sequence table doesn't exist — safe to ignore
 
     # Import sessions
     count_sessions = 0

@@ -17,6 +17,13 @@ from app.schemas.vocabulary import (
     VocabularyNoteDetail,
     VocabularyNoteResponse,
 )
+from app.schemas.quality import (
+    CheckDuplicatesRequest,
+    CheckDuplicatesResponse,
+    GenerateSingleWordRequest,
+    ValidateGeneratedRequest,
+    ValidateGeneratedResponse,
+)
 from app.schemas.vocabulary_normalize import (
     AIProviderStatus,
     GenerateFromWordsRequest,
@@ -30,7 +37,16 @@ from app.services.ai_normalizer_service import (
     is_ai_configured,
     normalize_markdown,
     generate_from_words,
+    generate_single_word,
     validate_word_input,
+)
+from app.services.quality_service import check_duplicates, validate_generated_entries
+from app.services.review_service import (
+    do_review,
+    get_review_logs,
+    get_due_today,
+    get_mastery_stats,
+    get_familiarity_trend,
 )
 from app.utils.markdown_parser import parse_vocabulary_markdown
 
@@ -187,19 +203,31 @@ def get_review_entries(
     page_size: int = Query(1, ge=1, le=200),
     familiarity: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
+    note_id: Optional[int] = Query(None),
+    due: Optional[str] = Query(None),
     db: Session = Depends(get_session),
 ):
     """Get vocabulary entries for review with pagination and filtering.
 
+    If note_id is provided, only returns entries from that note.
+    If due=today, only returns entries due for review today.
     If familiarity is not provided, returns entries with 'new' or 'learning' status.
-    Valid values: new, learning, familiar, mastered.
     """
-    entries, total = vocabulary_service.get_review_entries_paginated(
-        db,
-        page=page, page_size=page_size,
-        familiarity=familiarity,
-        q=q,
-    )
+    if due == "today":
+        entries, total = get_due_today(
+            db,
+            page=page, page_size=page_size,
+            familiarity=familiarity,
+            note_id=note_id,
+        )
+    else:
+        entries, total = vocabulary_service.get_review_entries_paginated(
+            db,
+            page=page, page_size=page_size,
+            familiarity=familiarity,
+            q=q,
+            note_id=note_id,
+        )
     return APIResponse(
         data=PaginatedResponse(
             items=[VocabularyEntryResponse.model_validate(e).model_dump() for e in entries],
@@ -208,6 +236,93 @@ def get_review_entries(
             page_size=page_size,
         ).model_dump()
     )
+
+
+@router.get("/review-logs")
+def list_review_logs(
+    entry_id: Optional[int] = Query(None),
+    note_id: Optional[int] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    db: Session = Depends(get_session),
+):
+    """Get vocabulary review logs with filtering and pagination."""
+    items, total = get_review_logs(
+        db,
+        entry_id=entry_id, note_id=note_id,
+        start_date=start_date, end_date=end_date,
+        page=page, page_size=page_size,
+    )
+    return APIResponse(
+        data=PaginatedResponse(
+            items=[{"id": log.id, "entry_id": log.entry_id, "note_id": log.note_id,
+                   "old_familiarity": log.old_familiarity, "new_familiarity": log.new_familiarity,
+                   "action": log.action, "reviewed_at": log.reviewed_at.isoformat(),
+                   "note": log.note, "created_at": log.created_at.isoformat()} for log in items],
+            total=total, page=page, page_size=page_size,
+        ).model_dump()
+    )
+
+
+@router.get("/due-today")
+def list_due_today(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=200),
+    familiarity: Optional[str] = Query(None),
+    note_id: Optional[int] = Query(None),
+    db: Session = Depends(get_session),
+):
+    """Get vocabulary entries due for review today."""
+    entries, total = get_due_today(
+        db,
+        page=page, page_size=page_size,
+        familiarity=familiarity, note_id=note_id,
+    )
+    return APIResponse(
+        data=PaginatedResponse(
+            items=[VocabularyEntryResponse.model_validate(e).model_dump() for e in entries],
+            total=total, page=page, page_size=page_size,
+        ).model_dump()
+    )
+
+
+@router.get("/stats/mastery")
+def get_mastery(
+    db: Session = Depends(get_session),
+):
+    """Get vocabulary mastery statistics."""
+    stats = get_mastery_stats(db)
+    return APIResponse(data=stats)
+
+
+@router.get("/stats/familiarity-trend")
+def get_fam_trend(
+    days: int = Query(30),
+    note_id: Optional[int] = Query(None),
+    db: Session = Depends(get_session),
+):
+    """Get vocabulary familiarity trend over time."""
+    trend = get_familiarity_trend(db, days=days, note_id=note_id)
+    return APIResponse(data={"items": trend})
+
+
+@router.put("/entries/{entry_id}/review")
+def review_entry(
+    entry_id: int,
+    action: str = Query(..., description="again / hard / good / easy"),
+    db: Session = Depends(get_session),
+):
+    """Perform a review action on an entry. Updates familiarity, counters, and logs."""
+    if action not in ("again", "hard", "good", "easy"):
+        raise HTTPException(status_code=422, detail="action 必须是 again / hard / good / easy 之一")
+
+    entry = do_review(db, entry_id, action)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Vocabulary entry not found")
+
+    return APIResponse(data=VocabularyEntryResponse.model_validate(entry).model_dump())
 
 
 @router.get("/ai-status")
@@ -335,6 +450,74 @@ def save_generated_note(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"保存失败: {str(e)}")
+
+
+@router.post("/notes/{note_id}/append-entries")
+def append_entries_to_note(
+    note_id: int,
+    body: SaveGeneratedNoteRequest,
+    db: Session = Depends(get_session),
+):
+    """Append AI-generated entries to an existing vocabulary note."""
+    note = vocabulary_service.get_note(db, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Vocabulary note not found")
+
+    if not body.entries:
+        raise HTTPException(status_code=400, detail="entries 不能为空")
+
+    try:
+        count = vocabulary_service.append_entries_to_note(db, note, body.entries)
+        return APIResponse(
+            data={
+                "note_id": note.id,
+                "title": note.title,
+                "appended_count": count,
+            },
+            success=True,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"追加失败: {str(e)}")
+
+
+@router.post("/check-duplicates")
+def check_duplicate_terms(
+    body: CheckDuplicatesRequest,
+    db: Session = Depends(get_session),
+):
+    """Check which terms already exist in vocabulary_entries."""
+    duplicates = check_duplicates(db, body.terms)
+    return APIResponse(data=CheckDuplicatesResponse(duplicates=duplicates).model_dump())
+
+
+@router.post("/validate-generated")
+def validate_generated(
+    body: ValidateGeneratedRequest,
+):
+    """Validate AI-generated entries for quality issues."""
+    result = validate_generated_entries(body.input_words, body.entries)
+    return APIResponse(data=ValidateGeneratedResponse(
+        summary=result["summary"],
+        items=result["items"],
+    ).model_dump())
+
+
+@router.post("/generate-single-word")
+async def generate_single_word_endpoint(
+    body: GenerateSingleWordRequest,
+):
+    """Generate vocabulary entry for a single word using AI."""
+    if not body.word or not body.word.strip():
+        raise HTTPException(status_code=400, detail="word is required")
+
+    result = await generate_single_word(body.word, body.options)
+    return APIResponse(data=GenerateFromWordsResponse(
+        title="",
+        standardized_markdown=result.get("standardized_markdown", ""),
+        entries=[result["entry"]] if result.get("entry") else [],
+        warnings=result.get("warnings", []),
+        source=result.get("source", "ai"),
+    ).model_dump())
 
 
 @router.post("/parse-markdown")

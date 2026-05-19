@@ -1,7 +1,7 @@
 """Router for reading result endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.database import get_session
 from app.schemas.common import APIResponse
@@ -58,6 +58,47 @@ def update_reading(
     if not result:
         raise HTTPException(status_code=404, detail="Reading result not found")
     return APIResponse(data=ReadingResponse.model_validate(result).model_dump())
+
+
+@router.get("/reading/stats/mistakes")
+def reading_mistake_stats(
+    db: Session = Depends(get_session),
+):
+    """Get reading mistake statistics by question type and tag."""
+    from collections import Counter
+    from app.models.reading_result import ReadingResult
+
+    all_readings = db.exec(select(ReadingResult)).all()
+
+    by_type: dict = {}
+    tag_counter: Counter = Counter()
+
+    for rr in all_readings:
+        qtype = rr.question_type
+        if qtype not in by_type:
+            by_type[qtype] = {"total_accuracy": 0.0, "count": 0}
+        if rr.total_questions > 0:
+            by_type[qtype]["total_accuracy"] += rr.correct_count / rr.total_questions * 100
+            by_type[qtype]["count"] += 1
+
+        if rr.mistake_tags_json:
+            for tags in rr.mistake_tags_json.values():
+                if isinstance(tags, list):
+                    for t in tags:
+                        tag_counter[t] += 1
+
+    by_question_type = []
+    for qtype, data in by_type.items():
+        avg_acc = round(data["total_accuracy"] / data["count"], 1) if data["count"] > 0 else 0.0
+        by_question_type.append({
+            "question_type": qtype,
+            "average_accuracy": avg_acc,
+            "total_sessions": data["count"],
+        })
+
+    mistake_tags = [{"tag": tag, "count": cnt} for tag, cnt in tag_counter.most_common(10)]
+
+    return APIResponse(data={"by_question_type": by_question_type, "mistake_tags": mistake_tags})
 
 
 @router.delete("/reading/{result_id}")

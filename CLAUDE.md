@@ -78,6 +78,7 @@ cet-tracker/
 - `/vocabulary` — 词汇笔记本列表
 - `/vocabulary/import` — 导入 Markdown 词汇
 - `/vocabulary/:id` — 词汇笔记详情（卡片式条目）
-- `/vocabulary/review` — 词汇复习
+- `/vocabulary/review` — 词汇复习（支持 ?note_id=X、?due=today）
+- `/reports` — 周报/月报
 - `/stats` — 统计数据
 - `/settings` — 导入/导出

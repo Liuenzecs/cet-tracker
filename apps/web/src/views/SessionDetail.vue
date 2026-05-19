@@ -245,6 +245,9 @@
 
       <!-- Associated Vocabulary -->
       <SectionCard title="关联词汇笔记">
+        <template #actions>
+          <el-button size="small" type="primary" @click="gotoGenerateVocab">为本次训练生成词汇笔记</el-button>
+        </template>
         <template v-if="vocabNotes.length > 0">
           <div class="vocab-links">
             <router-link
@@ -262,7 +265,27 @@
         </template>
         <div v-else class="no-result-hint">
           暂无关联词汇笔记
+          <el-button size="small" type="primary" style="margin-top:8px" @click="gotoGenerateVocab">为本次训练生成词汇笔记</el-button>
         </div>
+      </SectionCard>
+
+      <!-- Review tasks -->
+      <SectionCard title="复盘任务">
+        <template #actions>
+          <el-button size="small" type="primary" :loading="generatingTasks" @click="handleGenerateTasks">生成复盘任务</el-button>
+        </template>
+        <div v-if="reviewTasks.length > 0" class="task-list">
+          <div v-for="task in reviewTasks" :key="task.id" class="task-item">
+            <div class="task-left">
+              <el-tag :type="task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'info'" size="small">{{ task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低' }}</el-tag>
+              <span class="task-title">{{ task.title }}</span>
+            </div>
+            <div class="task-right">
+              <el-tag :type="task.status === 'done' ? 'success' : task.status === 'doing' ? 'warning' : 'info'" size="small">{{ task.status === 'done' ? '已完成' : task.status === 'doing' ? '进行中' : '待处理' }}</el-tag>
+            </div>
+          </div>
+        </div>
+        <div v-else class="no-result-hint">暂无复盘任务，点击上方按钮生成</div>
       </SectionCard>
     </template>
 
@@ -313,8 +336,9 @@ import { getSession, updateSession, deleteSession } from '@/api/sessions'
 import { getListeningResult, createListeningResult, deleteListeningResult } from '@/api/listening'
 import { getReadingResults, createReadingResult, deleteReadingResult } from '@/api/reading'
 import { getVocabularyNotes } from '@/api/vocabulary'
+import { generateReviewTasks, getReviewTasks } from '@/api/reviewTasks'
 import { useConfirm } from '@/composables/useConfirm'
-import type { ExamSession, ListeningResult, ReadingResult, VocabularyNote } from '@/types'
+import type { ExamSession, ListeningResult, ReadingResult, VocabularyNote, ReviewTask } from '@/types'
 import { SESSION_TYPES, LISTENING_MISTAKE_TAGS, READING_MISTAKE_TAGS, READING_QUESTION_TYPES } from '@/types'
 
 const props = defineProps<{ id: string }>()
@@ -364,6 +388,8 @@ const readingForm = reactive({
 
 // Vocab links
 const vocabNotes = ref<VocabularyNote[]>([])
+const reviewTasks = ref<ReviewTask[]>([])
+const generatingTasks = ref(false)
 
 const listeningPercent = computed(() => {
   if (!listeningResult.value) return 0
@@ -446,6 +472,32 @@ async function loadVocab() {
     vocabNotes.value = res.data?.items ?? []
   } catch {
     vocabNotes.value = []
+  }
+}
+
+async function loadReviewTasks() {
+  try {
+    const res = await getReviewTasks({ session_id: sessionId.value })
+    reviewTasks.value = res.data?.items ?? []
+  } catch {
+    reviewTasks.value = []
+  }
+}
+
+function gotoGenerateVocab() {
+  router.push(`/vocabulary/import?session_id=${sessionId.value}`)
+}
+
+async function handleGenerateTasks() {
+  generatingTasks.value = true
+  try {
+    const res = await generateReviewTasks(sessionId.value)
+    reviewTasks.value = res.data?.tasks ?? []
+    ElMessage.success(`已生成 ${res.data?.generated?.length ?? 0} 个复盘任务`)
+  } catch {
+    ElMessage.error('生成复盘任务失败')
+  } finally {
+    generatingTasks.value = false
   }
 }
 
@@ -554,7 +606,7 @@ async function handleDeleteReading(id: number) {
   } catch { /* handled */ }
 }
 
-onMounted(loadSession)
+onMounted(() => { loadSession(); loadReviewTasks() })
 </script>
 
 <style scoped>
@@ -751,5 +803,33 @@ onMounted(loadSession)
   display: flex;
   gap: var(--space-sm);
   flex-shrink: 0;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+}
+.task-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.task-title {
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+}
+.no-result-hint {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-caption);
+  padding: var(--space-md) 0;
 }
 </style>

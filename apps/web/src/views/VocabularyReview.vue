@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <PageHeader title="词汇复习" description="按熟悉度筛选，逐词强化记忆" />
+    <PageHeader :title="pageTitle" description="按熟悉度筛选，逐词强化记忆" />
 
     <div v-if="loading" v-loading="true" style="min-height: 300px" />
 
@@ -28,10 +28,13 @@
       <div v-if="totalEntries === 0 && !loading" class="review-complete">
         <el-result
           icon="success"
-          title="复习完成！"
-          sub-title="当前筛选条件下没有需要复习的词汇"
+          :title="reviewSummary.total > 0 ? '本次复习完成！' : '复习完成！'"
+          :sub-title="reviewSummary.total > 0
+            ? `本次复习 ${reviewSummary.total} 词：掌握 ${reviewSummary.mastered}，熟悉 ${reviewSummary.familiar}，模糊 ${reviewSummary.learning}，不认识 ${reviewSummary.newCount}`
+            : '当前筛选条件下没有需要复习的词汇'"
         >
           <template #extra>
+            <el-button v-if="noteIdFilter" type="primary" @click="router.push(`/vocabulary/${noteIdFilter}`)">返回词汇笔记</el-button>
             <el-button type="primary" @click="familiarityFilter = '', resetAndLoad()">查看全部</el-button>
             <el-button @click="router.push('/vocabulary/import')">导入笔记</el-button>
           </template>
@@ -147,11 +150,13 @@ import { ElMessage } from 'element-plus'
 import { View, Close, QuestionFilled, CircleCheck, Star } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
-import { getReviewEntries, updateVocabularyEntry } from '@/api/vocabulary'
+import { useRoute } from 'vue-router'
+import { getReviewEntries, reviewEntry } from '@/api/vocabulary'
 import type { VocabularyEntry } from '@/types'
 import { formatText, formatTextList, formatComparison } from '@/utils/vocabularyFormat'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(true)
 const entries = ref<VocabularyEntry[]>([])
 const totalEntries = ref(0)
@@ -161,6 +166,24 @@ const familiarityFilter = ref('')
 const revealed = ref(false)
 const marking = ref(false)
 const searchQuery = ref('')
+
+// v0.3.0: support note_id and due params from route query
+const noteIdFilter = computed(() => {
+  const q = route.query?.note_id
+  return q ? parseInt(q as string) : undefined
+})
+const dueFilter = computed(() => {
+  return (route.query?.due as string) || undefined
+})
+const pageTitle = computed(() => {
+  if (noteIdFilter.value) return '复习本次新增词汇'
+  if (dueFilter.value === 'today') return '今日待复习'
+  return '词汇复习'
+})
+
+// Review summary
+const reviewSummary = ref({ total: 0, mastered: 0, familiar: 0, learning: 0, newCount: 0 })
+const reviewComplete = ref(false)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalEntries.value / pageSize.value)))
 
@@ -177,13 +200,14 @@ async function loadReview() {
     }
     if (familiarityFilter.value) params.familiarity = familiarityFilter.value
     if (searchQuery.value) params.q = searchQuery.value
+    if (noteIdFilter.value) params.note_id = noteIdFilter.value
+    if (dueFilter.value === 'today') params.due = 'today'
 
     const res = await getReviewEntries(params)
     entries.value = res.data?.items ?? []
     totalEntries.value = res.data?.total ?? 0
     revealed.value = false
 
-    // If current page has no data, go to previous page or show done
     if (entries.value.length === 0 && currentPage.value > 1) {
       currentPage.value = Math.max(1, currentPage.value - 1)
       await loadReview()
@@ -206,23 +230,30 @@ function reveal() {
   revealed.value = true
 }
 
+const ACTION_MAP: Record<string, string> = {
+  new: 'again', learning: 'hard', familiar: 'good', mastered: 'easy',
+}
+
 async function markFamiliarity(newFamiliarity: string) {
   if (!currentEntry.value || marking.value) return
+  const action = ACTION_MAP[newFamiliarity] || 'again'
   marking.value = true
   try {
-    await updateVocabularyEntry(currentEntry.value.id, {
-      familiarity: newFamiliarity,
-      last_reviewed_at: new Date().toISOString(),
-    })
+    await reviewEntry(currentEntry.value.id, action)
     ElMessage.success(`已标记为「${familiarityLabel(newFamiliarity)}」`)
 
-    // Move to next item
+    // Update summary
+    reviewSummary.value.total += 1
+    if (newFamiliarity === 'mastered') reviewSummary.value.mastered += 1
+    else if (newFamiliarity === 'familiar') reviewSummary.value.familiar += 1
+    else if (newFamiliarity === 'learning') reviewSummary.value.learning += 1
+    else reviewSummary.value.newCount += 1
+
     revealed.value = false
     currentPage.value = currentPage.value + 1
 
-    // If past the end, go back to page 1
     if (currentPage.value > totalPages.value) {
-      // When we've reviewed all on the current filter, reload
+      reviewComplete.value = true
       currentPage.value = 1
     }
 

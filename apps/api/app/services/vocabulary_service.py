@@ -159,6 +159,7 @@ def get_review_entries_paginated(
     page_size: int = 1,
     familiarity: Optional[str] = None,
     q: Optional[str] = None,
+    note_id: Optional[int] = None,
 ) -> Tuple[List[VocabularyEntry], int]:
     """Get review entries with pagination, filtering, and search."""
     valid_familiarities = ("new", "learning", "familiar", "mastered")
@@ -171,6 +172,9 @@ def get_review_entries_paginated(
         select(VocabularyEntry)
         .where(VocabularyEntry.familiarity.in_(target))
     )
+
+    if note_id is not None:
+        base_query = base_query.where(VocabularyEntry.note_id == note_id)
 
     if q:
         base_query = base_query.where(VocabularyEntry.term.contains(q))
@@ -289,3 +293,62 @@ def create_note_from_generated(db: Session, data: SaveGeneratedNoteRequest) -> V
     db.commit()
     db.refresh(note)
     return note
+
+
+def append_entries_to_note(
+    db: Session,
+    note: VocabularyNote,
+    entries: List[GeneratedVocabularyEntry],
+) -> int:
+    """Append generated entries to an existing vocabulary note."""
+    count = 0
+    for gen_entry in entries:
+        meanings_json = []
+        for m in gen_entry.meanings or []:
+            parts = []
+            if m.pos: parts.append(m.pos)
+            if m.zh: parts.append(m.zh)
+            if m.en: parts.append(f"({m.en})")
+            meanings_json.append(" ".join(parts))
+
+        usages_json = []
+        for u in gen_entry.usages or []:
+            if u.meaning:
+                usages_json.append(f"{u.pattern} — {u.meaning}")
+            else:
+                usages_json.append(u.pattern)
+
+        examples_json = [
+            {"en": e.en, "zh": e.zh} for e in (gen_entry.examples or [])
+        ]
+
+        writing_sentences_json = []
+        for ws in gen_entry.writing_sentences or []:
+            if ws.zh:
+                writing_sentences_json.append(f"{ws.en} — {ws.zh}")
+            else:
+                writing_sentences_json.append(ws.en)
+
+        comparisons_json = [
+            {"left": c.left, "right": c.right, "left_meaning": c.left_meaning, "right_meaning": c.right_meaning}
+            for c in (gen_entry.comparisons or [])
+        ]
+
+        entry = VocabularyEntry(
+            note_id=note.id,
+            term=gen_entry.term,
+            entry_type=gen_entry.entry_type,
+            meanings_json=meanings_json,
+            usages_json=usages_json,
+            examples_json=examples_json,
+            mistake_tips_json=gen_entry.mistake_tips or [],
+            synonyms_json=gen_entry.synonyms or [],
+            comparisons_json=comparisons_json,
+            writing_sentences_json=writing_sentences_json,
+            tags_json=gen_entry.tags or [],
+        )
+        db.add(entry)
+        count += 1
+
+    db.commit()
+    return count

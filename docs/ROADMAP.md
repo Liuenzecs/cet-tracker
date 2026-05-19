@@ -12,6 +12,49 @@ Versions are cumulative. Each version includes all features from prior versions.
 
 ---
 
+## v0.3.3 — GitHub Launch Preparation (Current)
+
+- [x] **Clean package generation** — `scripts/create_clean_zip.py` + `check_clean_package.py` PASS
+- [x] **README launch optimization** — Full GitHub first-screen layout with positioning, features, copyright
+- [x] **GitHub issue templates** — `bug_report.md`, `feature_request.md`
+- [x] **Pull request template** — `.github/pull_request_template.md`
+- [x] **GitHub Actions CI** — `.github/workflows/ci.yml` (pytest + pnpm build)
+- [x] **Release notes** — `docs/RELEASE_NOTES_v0.3.3.md`
+- [x] **Screenshots placeholder** — `docs/screenshots/.gitkeep`
+- [x] **Version bump** — v0.3.2 → v0.3.3 across all files
+
+---
+
+## v0.3.2-fix — Acceptance Accuracy Fix
+
+- [x] **Fix 3 TestClient failures** — Envelope unwrapping in export/import tests
+- [x] **Fix import_export_service rollback bug** — `db.rollback()` was undoing DELETEs
+- [x] **Import/export roundtrip actually executed** — Runs 2 roundtrip tests, no longer "TEST EXISTS"
+- [x] **Redesign acceptance status rules** — PASS / FAIL / SKIPPED / XFAIL / PASS_WITH_WARNINGS
+- [x] **123/123 backend tests passing** — No failures wrapped as PASS
+- [x] **Regenerated AUTOMATED_ACCEPTANCE_REPORT.md** — Accurate status, known issues, exit codes
+
+---
+
+## v0.3.0 — Vocabulary Quality & Review System
+
+- [x] **Duplicate detection** — `POST /api/vocabulary/check-duplicates` with term normalization
+- [x] **Quality validation** — Local checks for empty terms, markdown noise, missing fields, suspicious content
+- [x] **Single-word regeneration** — `POST /api/vocabulary/generate-single-word`
+- [x] **Review logs** — `vocabulary_review_logs` table, audit trail for every review action
+- [x] **Spaced repetition** — Rule-based `next_review_at` calculation (again/hard/good/easy)
+- [x] **Due today** — `GET /api/vocabulary/due-today`, `GET /api/vocabulary/review?due=today`
+- [x] **Mastery stats** — `GET /api/vocabulary/stats/mastery`, familiarity trend
+- [x] **Review tasks** — CRUD + auto-generation from session results
+- [x] **Intensive listening** — Status tracking on listening results
+- [x] **Reading mistake stats** — By question type + top mistake tags
+- [x] **Weekly/monthly reports** — Rule-generated summaries with suggestions
+- [x] **Dashboard upgrade** — Due vocab, mastery rate, pending tasks, quick actions
+- [x] **Review by note** — `/vocabulary/review?note_id=X`
+- [x] **Reports page** — `/reports` with copy-to-clipboard
+
+---
+
 ## v1.0 — MVP
 
 **Goal**: A complete, usable local-first CET preparation tracker.

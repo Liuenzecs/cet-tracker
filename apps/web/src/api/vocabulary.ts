@@ -52,11 +52,56 @@ export function getReviewEntries(params?: Record<string, any>) {
   return apiClient.get<PaginatedResult<VocabularyEntry>>('/api/vocabulary/review', { params })
 }
 
-// v0.2.1: Word-list generation
+// v0.2.1: Word-list generation (longer timeout for AI)
 export function generateFromWords(data: GenerateFromWordsRequest) {
-  return apiClient.post<GenerateFromWordsResponse>('/api/vocabulary/generate-from-words', data)
+  return apiClient.post<GenerateFromWordsResponse>('/api/vocabulary/generate-from-words', data, { timeout: 180000 })
 }
 
 export function saveGeneratedNote(data: SaveGeneratedNoteRequest) {
   return apiClient.post<{ id: number; title: string; entry_count: number; created_at: string }>('/api/vocabulary/notes/from-generated', data)
+}
+
+export function appendEntriesToNote(noteId: number, data: SaveGeneratedNoteRequest) {
+  return apiClient.post<{ note_id: number; title: string; appended_count: number }>(`/api/vocabulary/notes/${noteId}/append-entries`, data)
+}
+
+export function getVocabularyNotesList(params?: Record<string, any>) {
+  return getVocabularyNotes(params)
+}
+
+// v0.3.0: Quality & Review
+import type { DuplicateItem, ValidateSummary, ValidateItem, MasteryStats, FamiliarityTrendItem, GeneratedVocabularyEntry } from '@/types'
+
+export function checkDuplicates(terms: string[]) {
+  return apiClient.post<{ duplicates: DuplicateItem[] }>('/api/vocabulary/check-duplicates', { terms })
+}
+
+export function validateGenerated(inputWords: string[], entries: any[]) {
+  return apiClient.post<{ summary: ValidateSummary; items: ValidateItem[] }>('/api/vocabulary/validate-generated', { input_words: inputWords, entries })
+}
+
+export function generateSingleWord(word: string, options?: Record<string, any>) {
+  return apiClient.post<{ title: string; standardized_markdown: string; entries: GeneratedVocabularyEntry[]; warnings: string[]; source: string }>(
+    '/api/vocabulary/generate-single-word', { word, options }, { timeout: 180000 }
+  )
+}
+
+export function getDueToday(params?: Record<string, any>) {
+  return apiClient.get<PaginatedResult<VocabularyEntry>>('/api/vocabulary/due-today', { params })
+}
+
+export function getReviewLogs(params?: Record<string, any>) {
+  return apiClient.get<PaginatedResult<any>>('/api/vocabulary/review-logs', { params })
+}
+
+export function getMasteryStats() {
+  return apiClient.get<MasteryStats>('/api/vocabulary/stats/mastery')
+}
+
+export function getFamiliarityTrend(params?: Record<string, any>) {
+  return apiClient.get<{ items: FamiliarityTrendItem[] }>('/api/vocabulary/stats/familiarity-trend', { params })
+}
+
+export function reviewEntry(entryId: number, action: string) {
+  return apiClient.put<VocabularyEntry>(`/api/vocabulary/entries/${entryId}/review?action=${action}`)
 }

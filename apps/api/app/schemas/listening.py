@@ -22,6 +22,9 @@ class ListeningUpdate(BaseModel):
     wrong_questions_json: Optional[List[Any]] = None
     mistake_tags_json: Optional[Dict[str, Any]] = None
     reflection: Optional[str] = None
+    intensive_status: Optional[str] = None
+    intensive_note: Optional[str] = None
+    intensive_completed_at: Optional[datetime] = None
 
 
 class ListeningResponse(BaseModel):
@@ -33,6 +36,9 @@ class ListeningResponse(BaseModel):
     wrong_questions_json: Optional[List[Any]] = None
     mistake_tags_json: Optional[Dict[str, Any]] = None
     reflection: Optional[str] = None
+    intensive_status: str = "not_started"
+    intensive_note: Optional[str] = None
+    intensive_completed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

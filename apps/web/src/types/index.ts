@@ -155,7 +155,70 @@ export interface DashboardStats {
   total_vocabulary: number
   vocabulary_by_familiarity: Record<string, number>
   pending_review: number
+  due_vocabulary_count: number
+  mastery_rate: number
+  pending_review_tasks_count: number
+  intensive_pending_count: number
+  top_mistake_tags: Array<{ tag: string; count: number }>
   recent_sessions: ExamSession[]
+  recent_review_tasks: Array<{ id: number; title: string; status: string; priority: string }>
+}
+
+export interface MasteryStats {
+  total: number
+  new: number
+  learning: number
+  familiar: number
+  mastered: number
+  mastery_rate: number
+  reviewed_total: number
+  due_today: number
+}
+
+export interface FamiliarityTrendItem {
+  date: string
+  new: number
+  learning: number
+  familiar: number
+  mastered: number
+}
+
+export interface ReadingMistakeStats {
+  by_question_type: Array<{ question_type: string; average_accuracy: number; total_sessions: number }>
+  mistake_tags: Array<{ tag: string; count: number }>
+}
+
+export interface WeeklyReport {
+  period: { start_date: string; end_date: string }
+  training: Record<string, any>
+  vocabulary: Record<string, any>
+  review_tasks: Record<string, any>
+  weaknesses: string[]
+  suggestions: string[]
+}
+
+// Quality
+export interface DuplicateItem {
+  term: string
+  normalized_term: string
+  existing_entry_id: number
+  existing_note_id: number
+  existing_note_title: string
+  familiarity: string
+}
+
+export interface ValidateSummary { total: number; valid: number; warnings: number; errors: number }
+export interface ValidateItem { term: string; level: string; messages: string[] }
+
+// Review tasks
+export interface ReviewTask {
+  id: number; session_id: number; task_type: string; title: string
+  description?: string; status: string; priority: string
+  due_date?: string; completed_at?: string; created_at: string; updated_at: string
+}
+export interface ReviewTaskCreate {
+  session_id: number; task_type: string; title: string
+  description?: string; priority?: string; due_date?: string
 }
 
 // Import/Export

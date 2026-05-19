@@ -13,6 +13,8 @@ from app.routers import (
     vocabulary,
     stats,
     import_export,
+    review_tasks,
+    reports,
 )
 
 
@@ -26,7 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="CET Tracker API",
     description="Local-first CET-4 / CET-6 exam preparation tracking API",
-    version="0.1.0",
+    version="0.3.3",
     lifespan=lifespan,
 )
 
@@ -46,6 +48,8 @@ app.include_router(reading.router)
 app.include_router(vocabulary.router)
 app.include_router(stats.router)
 app.include_router(import_export.router)
+app.include_router(review_tasks.router)
+app.include_router(reports.router)
 
 
 @app.get("/health")
