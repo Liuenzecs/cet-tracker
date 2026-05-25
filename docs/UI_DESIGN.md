@@ -159,6 +159,7 @@ This design delivers:
 | Stat number | 28px | Bold (700) | 1.25 | "156" in vocabulary count card |
 | Code / Markdown | 13px | Regular (400) | 1.6 | Raw Markdown display, JSON preview |
 | Vocabulary term | 22px | Bold (700) | 1.25 | "pending" in vocabulary card header |
+| IPA Phonetic | 14px | Regular (400) | 1.5 | `/ˈpendɪŋ/` displayed after term. Monospace font stack. Color: --color-text-tertiary. UK/US labels in 11px uppercase. |
 
 ---
 

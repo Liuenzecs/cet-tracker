@@ -66,7 +66,8 @@ def _build_system_prompt() -> str:
 4. 如果某行是文档标题（如"图片笔记扩展"、"词汇表"、"目录"、"复习表"），不要作为词条。
 5. 不要凭空添加原文没有出现的大量信息。
 6. 如果无法确定词性，pos 留空字符串。
-7. 不要包含任何真题全文、阅读文章全文、听力原文全文。
+7. 如果原始笔记中有音标信息，请分别提取英式(uk_phonetic)和美式(us_phonetic)；如果只有一种，填到 pronunciation_ipa；都没有则留空。
+8. 不要包含任何真题全文、阅读文章全文、听力原文全文。
 
 请严格按照以下 JSON schema 输出（不要输出 Markdown，只输出 JSON）：
 
@@ -76,6 +77,9 @@ def _build_system_prompt() -> str:
     {
       "term": "单词或短语",
       "entry_type": "word",
+      "pronunciation_ipa": "/ˈsæmpəl/",
+      "uk_phonetic": "/ˈsɑːmpəl/",
+      "us_phonetic": "/ˈsæmpəl/",
       "meanings": [
         {"pos": "adj.", "zh": "中文释义", "en": "英文释义"}
       ],
@@ -243,6 +247,9 @@ async def normalize_markdown(raw_markdown: str, provider: str = "deepseek") -> D
                     entry = NormalizedEntry(
                         term=str(raw_entry.get("term", "")),
                         entry_type=str(raw_entry.get("entry_type", "word")),
+                        pronunciation_ipa=str(raw_entry.get("pronunciation_ipa", "")),
+                        uk_phonetic=str(raw_entry.get("uk_phonetic", "")),
+                        us_phonetic=str(raw_entry.get("us_phonetic", "")),
                         meanings=meanings,
                         usages=usages,
                         examples=examples,
@@ -352,11 +359,15 @@ def build_vocabulary_generation_prompt(
 5. 如果是短语，entry_type 使用 "phrase"
 6. 如果是专有名词，entry_type 使用 "proper_noun"
 7. 不确定词性时 pos 留空字符串 ""
-8. standardized_markdown 必须使用稳定模板，包含所有章节标题:
+8. 为每个词条生成 pronunciation_ipa、uk_phonetic、us_phonetic 字段，使用标准 IPA 音标（如 /ˈæpl/、/ˈstjuːdənt/）。uk_phonetic 为英式发音，us_phonetic 为美式发音。短语或专有名词无法确定时留空字符串。
+9. standardized_markdown 必须使用稳定模板，包含所有章节标题:
 
 # {{标题}}
 
 ## 1. {{term}}
+
+### 发音
+- {{pronunciation_ipa}}
 
 ### 释义
 - {{pos}} {{zh}}
@@ -379,8 +390,9 @@ def build_vocabulary_generation_prompt(
 {comparisons_instruction}
 
 9. 必须输出严格 JSON（不要 Markdown 代码块，不要解释文字）
-10. 如果某个字段没有内容，用空数组 []"""
-
+10. 如果某个字段没有内容，用空数组 []
+11. 为每个词条生成 pronunciation_ipa 字段，使用标准 IPA 音标
+"""
 
 def _build_generation_system_prompt() -> str:
     """System prompt for vocabulary generation."""
@@ -396,6 +408,9 @@ JSON 格式:
     {
       "term": "...",
       "entry_type": "word",
+      "pronunciation_ipa": "/.../",
+      "uk_phonetic": "/.../",
+      "us_phonetic": "/.../",
       "meanings": [
         {"pos": "adj.", "zh": "中文释义", "en": "English meaning"}
       ],
@@ -426,9 +441,10 @@ JSON 格式:
 4. 不确定词性时 pos 留空字符串。
 5. 如果是短语，entry_type 使用 "phrase"。
 6. 如果是专有名词，entry_type 使用 "proper_noun"。
-7. 不要凭空添加原文没有出现的大量信息。
-8. 如果字段没有内容，用空数组。
-9. standardized_markdown 使用固定模板，包含 ## 释义 ###、## 常见用法 ###、## 例句 ### 等章节。"""
+7. 为每个词条生成 pronunciation_ipa 字段，使用标准 IPA 音标（如 /ˈkæmpəs/、/əˈbændən/），不确定时留空字符串。
+8. 不要凭空添加原文没有出现的大量信息。
+9. 如果字段没有内容，用空数组。
+10. standardized_markdown 使用固定模板，包含 ## 释义 ###、## 常见用法 ###、## 例句 ### 等章节。"""
 
 
 def _validate_generation_entry(entry: GeneratedVocabularyEntry) -> Optional[str]:
@@ -608,6 +624,9 @@ async def generate_from_words(
                     entry = GeneratedVocabularyEntry(
                         term=str(raw_entry.get("term", "")),
                         entry_type=str(raw_entry.get("entry_type", "word")),
+                        pronunciation_ipa=str(raw_entry.get("pronunciation_ipa", "")),
+                        uk_phonetic=str(raw_entry.get("uk_phonetic", "")),
+                        us_phonetic=str(raw_entry.get("us_phonetic", "")),
                         meanings=meanings,
                         usages=usages,
                         examples=examples,
@@ -756,6 +775,9 @@ async def generate_single_word(
             entry = GeneratedVocabularyEntry(
                 term=str(entry_data.get("term", word)),
                 entry_type=str(entry_data.get("entry_type", "word")),
+                pronunciation_ipa=str(entry_data.get("pronunciation_ipa", "")),
+                uk_phonetic=str(entry_data.get("uk_phonetic", "")),
+                us_phonetic=str(entry_data.get("us_phonetic", "")),
                 meanings=[NormalizedMeaning(pos=str(m.get("pos", "")), zh=str(m.get("zh", "")), en=str(m.get("en", ""))) for m in (entry_data.get("meanings") or [])],
                 usages=[NormalizedUsage(pattern=str(u.get("pattern", "")), meaning=str(u.get("meaning", ""))) for u in (entry_data.get("usages") or [])],
                 examples=[NormalizedExample(en=str(e.get("en", "")), zh=str(e.get("zh", ""))) for e in (entry_data.get("examples") or [])],

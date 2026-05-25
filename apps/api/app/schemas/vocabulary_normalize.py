@@ -31,6 +31,9 @@ class NormalizedComparison(BaseModel):
 class NormalizedEntry(BaseModel):
     term: str
     entry_type: str = "word"
+    pronunciation_ipa: str = ""
+    uk_phonetic: str = ""
+    us_phonetic: str = ""
     meanings: List[NormalizedMeaning] = []
     usages: List[NormalizedUsage] = []
     examples: List[NormalizedExample] = []
@@ -87,6 +90,9 @@ class GeneratedWritingSentence(BaseModel):
 class GeneratedVocabularyEntry(BaseModel):
     term: str
     entry_type: str = "word"
+    pronunciation_ipa: str = ""
+    uk_phonetic: str = ""
+    us_phonetic: str = ""
     meanings: List[NormalizedMeaning] = []
     usages: List[NormalizedUsage] = []
     examples: List[NormalizedExample] = []

@@ -175,8 +175,8 @@ Versions are cumulative. Each version includes all features from prior versions.
 
 ### Audio for Vocabulary
 
-- [ ] **Local TTS playback**: Use the browser's built-in Web Speech API (`SpeechSynthesis`) to pronounce vocabulary terms on demand. No external API required.
-- [ ] **Play button per entry**: Small speaker icon on each vocabulary entry card.
+- [x] **Local TTS playback**: Browser Web Speech API with configurable TTS fallback. No external API required by default.
+- [x] **Play button per entry**: Speaker icon on each vocabulary entry card and flashcard.
 - [ ] **Auto-play option**: Optional setting to auto-pronounce the term when reviewing.
 - [ ] **Pre-downloaded audio** (stretch): Bundle common CET vocabulary audio files (optional download within the app).
 

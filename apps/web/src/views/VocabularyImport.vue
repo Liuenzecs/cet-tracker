@@ -189,6 +189,15 @@
                   <div class="gen-edit-row">
                     <el-input v-model="entry.term" size="small" class="gen-term-input" placeholder="词汇" />
                   </div>
+                  <div v-if="entry.uk_phonetic || entry.us_phonetic || entry.pronunciation_ipa" class="gen-section">
+                    <span class="gen-label">发音</span>
+                    <div class="gen-line">
+                      <template v-if="entry.uk_phonetic">UK {{ entry.uk_phonetic }}</template>
+                      <template v-if="entry.uk_phonetic && entry.us_phonetic"> &middot; </template>
+                      <template v-if="entry.us_phonetic">US {{ entry.us_phonetic }}</template>
+                      <template v-if="!entry.uk_phonetic && !entry.us_phonetic && entry.pronunciation_ipa">{{ entry.pronunciation_ipa }}</template>
+                    </div>
+                  </div>
                   <div v-if="entry.meanings?.length" class="gen-section">
                     <span class="gen-label">释义</span>
                     <div v-for="(m, mi) in entry.meanings" :key="mi" class="gen-line">
@@ -356,6 +365,12 @@
                     <el-button size="small" type="danger" text @click="removeMdPreviewEntry(idx)"><el-icon><Delete /></el-icon></el-button>
                   </div>
                   <div class="preview-item-body">
+                    <div v-if="entry.pronunciation_ipa || entry.uk_phonetic || entry.us_phonetic" class="preview-meaning">
+                      发音:
+                      <template v-if="entry.uk_phonetic">UK {{ entry.uk_phonetic }} </template>
+                      <template v-if="entry.us_phonetic">US {{ entry.us_phonetic }} </template>
+                      <template v-if="!entry.uk_phonetic && !entry.us_phonetic && entry.pronunciation_ipa">{{ entry.pronunciation_ipa }}</template>
+                    </div>
                     <div v-if="entry.meanings_json?.length" class="preview-meaning">释义: {{ (entry.meanings_json || []).join('; ') }}</div>
                   </div>
                 </div>

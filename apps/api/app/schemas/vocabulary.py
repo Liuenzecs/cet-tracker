@@ -45,6 +45,9 @@ class VocabularyEntryUpdate(BaseModel):
     synonyms_json: Optional[List[Any]] = None
     comparisons_json: Optional[List[Any]] = None
     writing_sentences_json: Optional[List[Any]] = None
+    pronunciation_ipa: Optional[str] = None
+    uk_phonetic: Optional[str] = None
+    us_phonetic: Optional[str] = None
     familiarity: Optional[str] = None
     tags_json: Optional[List[Any]] = None
     last_reviewed_at: Optional[datetime] = None
@@ -63,6 +66,9 @@ class VocabularyEntryResponse(BaseModel):
     synonyms_json: Optional[List[Any]] = None
     comparisons_json: Optional[List[Any]] = None
     writing_sentences_json: Optional[List[Any]] = None
+    pronunciation_ipa: Optional[str] = None
+    uk_phonetic: Optional[str] = None
+    us_phonetic: Optional[str] = None
     familiarity: str
     review_count: int
     last_reviewed_at: Optional[datetime] = None

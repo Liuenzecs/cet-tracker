@@ -117,6 +117,9 @@ export interface VocabularyEntry {
   synonyms_json: string[]
   comparisons_json: any[]
   writing_sentences_json: string[]
+  pronunciation_ipa?: string
+  uk_phonetic?: string
+  us_phonetic?: string
   familiarity: 'new' | 'learning' | 'familiar' | 'mastered'
   review_count: number
   last_reviewed_at?: string
@@ -140,6 +143,9 @@ export interface VocabularyEntryUpdate {
   synonyms_json?: string[]
   comparisons_json?: any[]
   writing_sentences_json?: string[]
+  pronunciation_ipa?: string
+  uk_phonetic?: string
+  us_phonetic?: string
   tags_json?: string[]
 }
 
@@ -261,6 +267,9 @@ export interface NormalizedComparison {
 export interface NormalizedEntry {
   term: string
   entry_type: string
+  pronunciation_ipa: string
+  uk_phonetic: string
+  us_phonetic: string
   meanings: NormalizedMeaning[]
   usages: NormalizedUsage[]
   examples: NormalizedExample[]
@@ -311,6 +320,9 @@ export interface GeneratedWritingSentence {
 export interface GeneratedVocabularyEntry {
   term: string
   entry_type: string
+  pronunciation_ipa: string
+  uk_phonetic: string
+  us_phonetic: string
   meanings: NormalizedMeaning[]
   usages: NormalizedUsage[]
   examples: NormalizedExample[]

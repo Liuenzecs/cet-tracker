@@ -28,6 +28,7 @@ CET Tracker 解决的是 "练了很多题，但不知道自己薄弱在哪" 的�
 | 听力精听 | 标记精听状态，跟踪精听进度 |
 | 阅读错因 | 按题型统计错误分布，自动汇总高频错因标签 |
 | 词汇笔记本 | Markdown 导入 或 输入单词列表 AI 生成结构化笔记 |
+| 词汇发音 | 点击喇叭图标发音（优先浏览器语音合成），展示英式/美式 IPA 音标 |
 | 词汇复习 | 卡片式间隔复习，自动记录复习日志，按熟悉度追踪 |
 | 间隔重复 | again/hard/good/easy 四档评分，自动计算下次复习时间 |
 | 复盘任务 | 从训练结果自动生成听力/阅读专项复盘任务 |
@@ -57,7 +58,7 @@ CET Tracker 解决的是 "练了很多题，但不知道自己薄弱在哪" 的�
 | 后端 | FastAPI + SQLModel + SQLite |
 | AI（可选） | DeepSeek API（用户自行配置 Key） |
 | 包管理器 | pnpm（前端）、uv（后端） |
-| 测试 | pytest（后端 123 tests, 80%+ coverage） |
+| 测试 | pytest（后端 128 tests, 80%+ coverage） |
 
 ---
 
@@ -126,7 +127,7 @@ python scripts/run_acceptance.py
 RUN_LIVE_AI_TESTS=true python scripts/run_acceptance.py
 ```
 
-验收内容：文件结构、Git 安全、后端测试 (123/123)、前端构建、API smoke、导入导出往返、AI mock (12 tests)、GitHub 合规。
+验收内容：文件结构、Git 安全、后端测试 (128/128)、前端构建、API smoke、导入导出往返、AI mock (12 tests)、GitHub 合规。
 
 **状态类型**：`PASS` / `FAIL` / `SKIPPED` / `XFAIL` / `PASS_WITH_WARNINGS`
 
@@ -139,7 +140,7 @@ RUN_LIVE_AI_TESTS=true python scripts/run_acceptance.py
 ## 测试与构建
 
 ```bash
-# 后端测试（123 tests）
+# 后端测试（128 tests）
 cd apps/api && uv run pytest tests/ -v
 
 # 前端构建

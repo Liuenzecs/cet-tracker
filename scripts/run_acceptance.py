@@ -465,7 +465,7 @@ def generate_report():
 # -- Main --
 def main():
     print("=" * 60)
-    print("CET Tracker v0.3.3 Automated Acceptance")
+    print("CET Tracker v0.3.4 Automated Acceptance")
     print("=" * 60)
 
     steps = [

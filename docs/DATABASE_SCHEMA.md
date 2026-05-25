@@ -182,6 +182,9 @@ CREATE TABLE vocabulary_entries (
     last_reviewed_at      DATETIME,
     next_review_at        DATETIME,
     tags_json             JSON NOT NULL DEFAULT '[]',
+    pronunciation_ipa     VARCHAR(200),
+    uk_phonetic           VARCHAR(200),
+    us_phonetic           VARCHAR(200),
     created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -206,6 +209,9 @@ CREATE TABLE vocabulary_entries (
 | `last_reviewed_at` | DATETIME | Timestamp of the most recent review action. |
 | `next_review_at` | DATETIME | Reserved for v1.1 spaced repetition scheduling. Not used in v1.0. |
 | `tags_json` | JSON array of strings | User-defined or auto-generated tags for filtering |
+| `pronunciation_ipa` | VARCHAR | IPA phonetic notation. AI-generated or manually entered. Nullable. |
+| `uk_phonetic` | VARCHAR | British English IPA (e.g., /ˈʃedjuːl/). Nullable. |
+| `us_phonetic` | VARCHAR | American English IPA (e.g., /ˈskedʒuːl/). Nullable. |
 
 **Indexes**:
 ```sql

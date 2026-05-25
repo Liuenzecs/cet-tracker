@@ -195,6 +195,82 @@ class TestSchemaValidation:
         assert len(d["writing_sentences"]) == 1
 
 
+class TestPhonetics:
+    """v0.3.4 pronunciation / phonetics feature tests."""
+
+    def test_generated_entry_with_phonetics(self):
+        """GeneratedVocabularyEntry accepts and preserves uk/us phonetics."""
+        entry = GeneratedVocabularyEntry(
+            term="abandon",
+            entry_type="word",
+            pronunciation_ipa="/əˈbændən/",
+            uk_phonetic="/əˈbændən/",
+            us_phonetic="/əˈbændən/",
+            meanings=[NormalizedMeaning(pos="v.", zh="放弃")],
+        )
+        d = entry.model_dump()
+        assert d["pronunciation_ipa"] == "/əˈbændən/"
+        assert d["uk_phonetic"] == "/əˈbændən/"
+        assert d["us_phonetic"] == "/əˈbændən/"
+
+    def test_entry_without_phonetics_does_not_crash(self):
+        """GeneratedVocabularyEntry with empty phonetics defaults to empty strings."""
+        entry = GeneratedVocabularyEntry(
+            term="test",
+            entry_type="word",
+            meanings=[NormalizedMeaning(pos="n.", zh="测试")],
+        )
+        d = entry.model_dump()
+        assert d["pronunciation_ipa"] == ""
+        assert d["uk_phonetic"] == ""
+        assert d["us_phonetic"] == ""
+
+    def test_ai_generation_schema_accepts_empty_phonetics(self):
+        """AI generation response schema allows empty phonetics strings."""
+        entry = GeneratedVocabularyEntry(
+            term="phrase_example",
+            entry_type="phrase",
+            pronunciation_ipa="",
+            uk_phonetic="",
+            us_phonetic="",
+            meanings=[],
+        )
+        assert _validate_generation_entry(entry) is None  # valid despite no phonetics
+
+    def test_uk_us_different_phonetics(self):
+        """UK and US phonetics can differ (e.g. schedule)."""
+        entry = GeneratedVocabularyEntry(
+            term="schedule",
+            entry_type="word",
+            uk_phonetic="/ˈʃedjuːl/",
+            us_phonetic="/ˈskedʒuːl/",
+            meanings=[NormalizedMeaning(pos="n.", zh="日程")],
+        )
+        d = entry.model_dump()
+        assert d["uk_phonetic"] == "/ˈʃedjuːl/"
+        assert d["us_phonetic"] == "/ˈskedʒuːl/"
+
+    def test_old_entry_without_phonetics_does_not_crash(self):
+        """Backward compatibility: entries stored without phonetics fields
+        are still accepted by the response schema."""
+        from app.schemas.vocabulary import VocabularyEntryResponse
+        # Simulate DB row without the new columns
+        entry_dict = {
+            "id": 1, "note_id": 1, "term": "old_word", "entry_type": "word",
+            "meanings_json": ["旧的"], "usages_json": [], "examples_json": [],
+            "mistake_tips_json": [], "synonyms_json": [], "comparisons_json": [],
+            "writing_sentences_json": [], "familiarity": "new",
+            "review_count": 0, "created_at": "2025-01-01T00:00:00",
+            "updated_at": "2025-01-01T00:00:00",
+            "tags_json": [],
+            # deliberately omit pronunciation_ipa, uk_phonetic, us_phonetic
+        }
+        resp = VocabularyEntryResponse.model_validate(entry_dict)
+        assert resp.pronunciation_ipa is None
+        assert resp.uk_phonetic is None
+        assert resp.us_phonetic is None
+
+
 class TestGenerationResponseStructure:
     def test_response_has_required_fields(self):
         """Ensure generation response dict has all required fields."""

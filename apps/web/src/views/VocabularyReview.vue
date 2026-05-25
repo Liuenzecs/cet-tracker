@@ -50,13 +50,38 @@
               <StatusTag type="familiarity" :value="currentEntry.familiarity" />
             </div>
             <h2 class="fc-term">{{ currentEntry.term }}</h2>
+            <button class="speak-btn" title="发音" @click.stop="speak(currentEntry.term)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+            </button>
+            <p v-if="currentEntry.uk_phonetic" class="fc-ipa">UK {{ currentEntry.uk_phonetic }}</p>
+            <p v-if="currentEntry.us_phonetic" class="fc-ipa">US {{ currentEntry.us_phonetic }}</p>
+            <p v-else-if="!currentEntry.uk_phonetic && currentEntry.pronunciation_ipa" class="fc-ipa">{{ currentEntry.pronunciation_ipa }}</p>
             <p v-if="currentEntry.entry_type && currentEntry.entry_type !== 'word'" class="fc-type">{{ currentEntry.entry_type }}</p>
             <p class="fc-hint">点击查看释义</p>
           </div>
 
           <!-- Back: full details -->
           <div v-else class="flashcard-back">
-            <h2 class="fc-term">{{ currentEntry.term }}</h2>
+            <div class="fc-back-header">
+              <h2 class="fc-term">{{ currentEntry.term }}</h2>
+              <button class="speak-btn small" title="发音" @click.stop="speak(currentEntry.term)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+              </button>
+            </div>
+            <p v-if="currentEntry.uk_phonetic || currentEntry.us_phonetic" class="fc-ipa-back">
+              <template v-if="currentEntry.uk_phonetic">UK {{ currentEntry.uk_phonetic }}</template>
+              <template v-if="currentEntry.uk_phonetic && currentEntry.us_phonetic"> &middot; </template>
+              <template v-if="currentEntry.us_phonetic">US {{ currentEntry.us_phonetic }}</template>
+            </p>
+            <p v-else-if="currentEntry.pronunciation_ipa" class="fc-ipa-back">{{ currentEntry.pronunciation_ipa }}</p>
 
             <!-- Meanings -->
             <div v-if="currentEntry.meanings_json?.length" class="fc-section">
@@ -152,11 +177,13 @@ import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { useRoute } from 'vue-router'
 import { getReviewEntries, reviewEntry } from '@/api/vocabulary'
+import { useSpeech } from '@/composables/useSpeech'
 import type { VocabularyEntry } from '@/types'
 import { formatText, formatTextList, formatComparison } from '@/utils/vocabularyFormat'
 
 const router = useRouter()
 const route = useRoute()
+const { speak } = useSpeech()
 const loading = ref(true)
 const entries = ref<VocabularyEntry[]>([])
 const totalEntries = ref(0)
@@ -370,6 +397,56 @@ onMounted(loadReview)
   font-size: var(--text-body);
   color: var(--color-text-tertiary);
   margin-top: var(--space-md);
+}
+
+.speak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--color-bg);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-top: var(--space-sm);
+}
+
+.speak-btn.small {
+  width: 28px;
+  height: 28px;
+  margin-top: 0;
+}
+
+.speak-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.fc-ipa {
+  font-size: 14px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.fc-ipa-back {
+  font-size: 14px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.fc-back-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
 }
 
 .flashcard-back {

@@ -594,6 +594,9 @@ Get a single vocabulary note with its entries.
         "review_count": 0,
         "last_reviewed_at": null,
         "next_review_at": null,
+        "pronunciation_ipa": "/ˈpendɪŋ/",
+        "uk_phonetic": "/ˈpendɪŋ/",
+        "us_phonetic": "/ˈpendɪŋ/",
         "tags_json": [],
         "created_at": "2025-03-16T10:00:00",
         "updated_at": "2025-03-16T10:00:00"
@@ -1071,6 +1074,9 @@ Export ALL data as a single JSON file. The response triggers a file download.
       "last_reviewed_at": null,
       "next_review_at": null,
       "tags_json": [],
+      "pronunciation_ipa": "/ˈpendɪŋ/",
+      "uk_phonetic": "/ˈpendɪŋ/",
+      "us_phonetic": "/ˈpendɪŋ/",
       "created_at": "2025-03-16T10:00:00",
       "updated_at": "2025-03-16T10:00:00"
     }

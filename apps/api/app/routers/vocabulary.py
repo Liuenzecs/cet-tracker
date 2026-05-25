@@ -75,7 +75,7 @@ def list_notes(
     source_section: Optional[str] = Query(None),
     source_session_id: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_session),
 ):
     """List vocabulary notes with optional filtering and pagination."""

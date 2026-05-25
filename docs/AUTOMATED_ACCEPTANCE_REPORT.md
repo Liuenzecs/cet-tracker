@@ -1,11 +1,11 @@
 # CET Tracker — Automated Acceptance Report
 
-**Generated:** 2026-05-19T13:25:46.432153+00:00
+**Generated:** 2026-05-25T15:43:33.355991+00:00
 **Overall status:** PASS
 
 **Summary:** 22 PASS, 0 FAIL, 0 XFAIL, 2 SKIPPED, 0 PASS_WITH_WARNINGS — 24 checks total
 
-**Git commit:** `c551c09`
+**Git commit:** `8472113`
 
 ## Results
 
@@ -19,12 +19,12 @@
 | 6 | gitignore_has_data/*.db | PASS | - |
 | 7 | gitignore_has_.claude | PASS | - |
 | 8 | gitignore_has_.venv | PASS | - |
-| 9 | backend_tests | PASS | 123/123 passed, 15 warnings |
+| 9 | backend_tests | PASS | 128/128 passed, 15 warnings |
 | 10 | frontend_build | PASS | - |
 | 11 | api_smoke_test | PASS | 24 smoke tests passed |
 | 12 | import_export_roundtrip | PASS | 2/2 roundtrip tests passed |
 | 13 | clean_package | PASS | 127 files, no forbidden items |
-| 14 | ai_mock_test | PASS | 12 AI-related tests passed (mock mode) |
+| 14 | ai_mock_test | PASS | 13 AI-related tests passed (mock mode) |
 | 15 | live_ai_test | SKIPPED | Optional — set RUN_LIVE_AI_TESTS=true to enable (requires API key) |
 | 16 | github_LICENSE_exists | PASS | - |
 | 17 | github_README_exists | PASS | - |

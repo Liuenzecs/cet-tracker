@@ -76,6 +76,16 @@
               <div class="entry-term-row">
                 <span class="entry-type-badge">{{ entry.entry_type }}</span>
                 <h2 class="entry-term">{{ entry.term }}</h2>
+                <button class="speak-btn" title="发音" @click="speak(entry.term)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                </button>
+                <span v-if="entry.uk_phonetic" class="ipa-text">UK {{ entry.uk_phonetic }}</span>
+                <span v-if="entry.us_phonetic" class="ipa-text">US {{ entry.us_phonetic }}</span>
+                <span v-else-if="!entry.uk_phonetic && entry.pronunciation_ipa" class="ipa-text">{{ entry.pronunciation_ipa }}</span>
                 <el-select
                   :model-value="entry.familiarity"
                   size="small"
@@ -280,6 +290,19 @@
           </el-col>
         </el-row>
 
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="英式音标 (UK)">
+              <el-input v-model="editingEntry.uk_phonetic" placeholder="如 /ˈvəʊkæbjʊləri/" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="美式音标 (US)">
+              <el-input v-model="editingEntry.us_phonetic" placeholder="如 /ˈvoʊkæbjəleri/" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-form-item label="释义 (meanings_json)">
           <el-input v-model="editMeaningsText" type="textarea" :rows="3" placeholder="每行一个释义" />
         </el-form-item>
@@ -327,6 +350,7 @@ import StatusTag from '@/components/StatusTag.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { getVocabularyNote, deleteVocabularyNote, getVocabularyEntries, updateVocabularyEntry } from '@/api/vocabulary'
 import { useConfirm } from '@/composables/useConfirm'
+import { useSpeech } from '@/composables/useSpeech'
 import type { VocabularyNote, VocabularyEntry } from '@/types'
 import { FAMILIARITY_MAP } from '@/types'
 import { formatText, formatTextList, formatComparison } from '@/utils/vocabularyFormat'
@@ -334,6 +358,7 @@ import { formatText, formatTextList, formatComparison } from '@/utils/vocabulary
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const { confirm } = useConfirm()
+const { speak } = useSpeech()
 
 const noteId = computed(() => parseInt(props.id))
 const loading = ref(true)
@@ -483,6 +508,9 @@ async function saveEdit() {
     const payload: Record<string, any> = {
       term: e.term,
       entry_type: e.entry_type,
+      pronunciation_ipa: e.pronunciation_ipa?.trim() || null,
+      uk_phonetic: e.uk_phonetic?.trim() || null,
+      us_phonetic: e.us_phonetic?.trim() || null,
       familiarity: e.familiarity,
       meanings_json: editMeaningsText.value.split('\n').filter(s => s.trim()),
       usages_json: editUsagesText.value.split('\n').filter(s => s.trim()),
@@ -613,6 +641,33 @@ onMounted(loadNote)
   font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
+}
+
+.speak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--color-bg);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.speak-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.ipa-text {
+  font-size: 14px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Lucida Sans Unicode', monospace;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.02em;
 }
 
 .entry-meta-right {
