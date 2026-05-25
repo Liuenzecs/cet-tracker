@@ -11,6 +11,7 @@ from app.schemas.vocabulary import (
     ParseMarkdownRequest,
     ParseMarkdownResponse,
     ParsedEntry,
+    StarEntryRequest,
     VocabularyEntryResponse,
     VocabularyEntryUpdate,
     VocabularyNoteCreate,
@@ -197,6 +198,49 @@ def update_entry(
     return APIResponse(data=VocabularyEntryResponse.model_validate(entry).model_dump())
 
 
+@router.put("/entries/{entry_id}/star")
+def star_entry(
+    entry_id: int,
+    body: StarEntryRequest,
+    db: Session = Depends(get_session),
+):
+    """Star or unstar a vocabulary entry."""
+    if body.star_priority not in ("normal", "high"):
+        raise HTTPException(status_code=422, detail="star_priority 必须是 normal 或 high")
+    entry = vocabulary_service.star_entry(
+        db, entry_id, body.is_starred,
+        star_note=body.star_note, star_priority=body.star_priority,
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="Vocabulary entry not found")
+    return APIResponse(data=VocabularyEntryResponse.model_validate(entry).model_dump())
+
+
+@router.get("/starred")
+def list_starred(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+    q: Optional[str] = Query(None),
+    familiarity: Optional[str] = Query(None),
+    star_priority: Optional[str] = Query(None),
+    source_section: Optional[str] = Query(None),
+    note_id: Optional[int] = Query(None),
+    db: Session = Depends(get_session),
+):
+    """List starred vocabulary entries with pagination and filtering."""
+    entries, total = vocabulary_service.get_starred_entries(
+        db, page=page, page_size=page_size,
+        q=q, familiarity=familiarity, star_priority=star_priority,
+        source_section=source_section, note_id=note_id,
+    )
+    return APIResponse(
+        data=PaginatedResponse(
+            items=[VocabularyEntryResponse.model_validate(e).model_dump() for e in entries],
+            total=total, page=page, page_size=page_size,
+        ).model_dump()
+    )
+
+
 @router.get("/review")
 def get_review_entries(
     page: int = Query(1, ge=1),
@@ -205,12 +249,14 @@ def get_review_entries(
     q: Optional[str] = Query(None),
     note_id: Optional[int] = Query(None),
     due: Optional[str] = Query(None),
+    starred: Optional[bool] = Query(None),
     db: Session = Depends(get_session),
 ):
     """Get vocabulary entries for review with pagination and filtering.
 
     If note_id is provided, only returns entries from that note.
     If due=today, only returns entries due for review today.
+    If starred=true, only returns starred entries.
     If familiarity is not provided, returns entries with 'new' or 'learning' status.
     """
     if due == "today":
@@ -228,6 +274,12 @@ def get_review_entries(
             q=q,
             note_id=note_id,
         )
+
+    # Filter by starred if requested
+    if starred:
+        entries = [e for e in entries if e.is_starred]
+        total = len(entries)
+
     return APIResponse(
         data=PaginatedResponse(
             items=[VocabularyEntryResponse.model_validate(e).model_dump() for e in entries],

@@ -629,7 +629,9 @@ async function handleMdAINormalize() {
       mistake_tips_json: e.mistake_tips, synonyms_json: e.synonyms,
       comparisons_json: e.comparisons?.map((c: any) => ({ left: c.left, right: c.right, left_meaning: c.left_meaning, right_meaning: c.right_meaning })),
       writing_sentences_json: e.writing_sentences,
-      familiarity: 'new', review_count: 0, tags_json: [], created_at: '', updated_at: '',
+      familiarity: 'new', review_count: 0, is_starred: false, star_priority: 'normal',
+      pronunciation_ipa: '', uk_phonetic: '', us_phonetic: '',
+      tags_json: [], created_at: '', updated_at: '',
     })) as VocabularyEntry[]
     ElMessage.success(mdPreviewEntries.value.length ? `AI 规范化：${mdPreviewEntries.value.length} 个词汇` : 'AI 未返回有效词条')
   } catch { ElMessage.error('AI 规范化失败') } finally { mdAiNormalizing.value = false }

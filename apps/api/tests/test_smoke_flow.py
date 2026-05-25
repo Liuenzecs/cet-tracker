@@ -195,3 +195,36 @@ class TestSmokeFlow:
     def test_24_parse_md(self, client):
         r = client.post("/api/vocabulary/parse-markdown", json={"raw_markdown": "## test\n\n### 释义\n测试"})
         assert r.status_code == 200
+
+    def test_25_star_entry(self, client):
+        """v0.4.0: star the smoke entry."""
+        eid = self._entry_id
+        if eid is None:
+            # entry may have been re-assigned by import
+            r = client.get("/api/vocabulary/notes")
+            notes = r.json()["data"]["items"]
+            if notes:
+                r = client.get(f"/api/vocabulary/notes/{notes[0]['id']}/entries")
+                items = r.json()["data"]["items"]
+                if items:
+                    eid = items[0]["id"]
+        if eid is None:
+            pytest.skip("No entry available for star test")
+        r = client.put(f"/api/vocabulary/entries/{eid}/star", json={
+            "is_starred": True, "star_note": "smoke star", "star_priority": "high"
+        })
+        assert r.status_code == 200
+        assert r.json()["data"]["is_starred"] is True
+        TestSmokeFlow._entry_id = eid
+
+    def test_26_starred_list(self, client):
+        r = client.get("/api/vocabulary/starred")
+        assert r.status_code == 200
+
+    def test_27_starred_review(self, client):
+        r = client.get("/api/vocabulary/review?starred=true")
+        assert r.status_code == 200
+
+    def test_27_starred_review(self, client):
+        r = client.get("/api/vocabulary/review?starred=true")
+        assert r.status_code == 200

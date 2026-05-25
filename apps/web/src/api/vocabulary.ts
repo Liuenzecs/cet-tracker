@@ -105,3 +105,12 @@ export function getFamiliarityTrend(params?: Record<string, any>) {
 export function reviewEntry(entryId: number, action: string) {
   return apiClient.put<VocabularyEntry>(`/api/vocabulary/entries/${entryId}/review?action=${action}`)
 }
+
+// v0.4.0: Starred vocabulary
+export function starEntry(id: number, data: { is_starred: boolean; star_note?: string; star_priority?: string }) {
+  return apiClient.put<VocabularyEntry>(`/api/vocabulary/entries/${id}/star`, data)
+}
+
+export function getStarredEntries(params?: Record<string, any>) {
+  return apiClient.get<PaginatedResult<VocabularyEntry>>('/api/vocabulary/starred', { params })
+}

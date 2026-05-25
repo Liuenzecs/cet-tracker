@@ -48,6 +48,7 @@ import {
   Reading,
   Notebook,
   Setting,
+  Star,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -63,6 +64,7 @@ const navItems: NavItem[] = [
   { path: '/sessions', label: '训练记录', icon: DataAnalysis },
   { path: '/vocabulary', label: '词汇笔记', icon: Collection },
   { path: '/vocabulary/review', label: '复习', icon: Reading },
+  { path: '/vocabulary/starred', label: '星标词汇', icon: Star },
   { path: '/stats', label: '统计', icon: DataAnalysis },
   { path: '/reports', label: '报告', icon: Notebook },
 ]

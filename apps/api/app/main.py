@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="CET Tracker API",
     description="Local-first CET-4 / CET-6 exam preparation tracking API",
-    version="0.3.4",
+    version="0.4.0",
     lifespan=lifespan,
 )
 

@@ -120,6 +120,10 @@ export interface VocabularyEntry {
   pronunciation_ipa?: string
   uk_phonetic?: string
   us_phonetic?: string
+  is_starred: boolean
+  starred_at?: string
+  star_note?: string
+  star_priority: 'normal' | 'high'
   familiarity: 'new' | 'learning' | 'familiar' | 'mastered'
   review_count: number
   last_reviewed_at?: string
@@ -146,7 +150,17 @@ export interface VocabularyEntryUpdate {
   pronunciation_ipa?: string
   uk_phonetic?: string
   us_phonetic?: string
+  is_starred?: boolean
+  starred_at?: string
+  star_note?: string
+  star_priority?: string
   tags_json?: string[]
+}
+
+export interface StarEntryRequest {
+  is_starred: boolean
+  star_note?: string
+  star_priority?: 'normal' | 'high'
 }
 
 // Stats
@@ -165,6 +179,9 @@ export interface DashboardStats {
   mastery_rate: number
   pending_review_tasks_count: number
   intensive_pending_count: number
+  starred_vocabulary_count: number
+  high_priority_starred_count: number
+  starred_due_today_count: number
   top_mistake_tags: Array<{ tag: string; count: number }>
   recent_sessions: ExamSession[]
   recent_review_tasks: Array<{ id: number; title: string; status: string; priority: string }>

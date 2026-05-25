@@ -40,6 +40,11 @@ const router = createRouter({
       component: () => import('@/views/VocabularyReview.vue'),
     },
     {
+      path: '/vocabulary/starred',
+      name: 'VocabularyStarred',
+      component: () => import('@/views/VocabularyStarred.vue'),
+    },
+    {
       path: '/vocabulary/:id',
       name: 'VocabularyDetail',
       component: () => import('@/views/VocabularyDetail.vue'),

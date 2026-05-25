@@ -185,6 +185,10 @@ CREATE TABLE vocabulary_entries (
     pronunciation_ipa     VARCHAR(200),
     uk_phonetic           VARCHAR(200),
     us_phonetic           VARCHAR(200),
+    is_starred            BOOLEAN NOT NULL DEFAULT FALSE,
+    starred_at            DATETIME,
+    star_note             VARCHAR(500),
+    star_priority         VARCHAR(20) NOT NULL DEFAULT 'normal' CHECK (star_priority IN ('normal', 'high')),
     created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

@@ -36,6 +36,9 @@ class DashboardStats(BaseModel):
     mastery_rate: float = 0.0
     pending_review_tasks_count: int = 0
     intensive_pending_count: int = 0
+    starred_vocabulary_count: int = 0
+    high_priority_starred_count: int = 0
+    starred_due_today_count: int = 0
     top_mistake_tags: List[Dict[str, Any]] = []
     recent_sessions: List[RecentSessionSummary] = []
     recent_review_tasks: List[Dict[str, Any]] = []

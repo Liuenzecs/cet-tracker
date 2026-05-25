@@ -66,6 +66,13 @@
             <span class="qc-label">待精听训练</span>
           </div>
         </div>
+        <div class="quick-card starred" @click="router.push('/vocabulary/starred')">
+          <div class="qc-icon"><el-icon :size="20" color="#F59E0B"><StarFilled /></el-icon></div>
+          <div class="qc-body">
+            <span class="qc-value">{{ stats?.starred_vocabulary_count ?? 0 }}</span>
+            <span class="qc-label">星标词汇</span>
+          </div>
+        </div>
       </div>
 
       <!-- Quick actions -->
@@ -147,7 +154,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { DataAnalysis, Headset, Reading, Collection, ArrowRight, Notebook, Clock, TrendCharts, List, Plus, MagicStick, Document } from '@element-plus/icons-vue'
+import { DataAnalysis, Headset, Reading, Collection, ArrowRight, Notebook, Clock, TrendCharts, List, Plus, MagicStick, Document, StarFilled } from '@element-plus/icons-vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { LineChart, PieChart } from 'echarts/charts'
@@ -422,7 +429,7 @@ onMounted(async () => {
 
 .quick-cards-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
@@ -443,6 +450,7 @@ onMounted(async () => {
 .quick-card.mastery { background: #F0FDF4; border-color: #86EFAC; }
 .quick-card.tasks { background: #EFF6FF; border-color: #93C5FD; }
 .quick-card.intensive { background: #FEF3C7; border-color: #FCD34D; }
+.quick-card.starred { background: #FFFBEB; border-color: #FCD34D; }
 
 .qc-icon { color: var(--color-text-tertiary); flex-shrink: 0; }
 .qc-body { display: flex; flex-direction: column; }

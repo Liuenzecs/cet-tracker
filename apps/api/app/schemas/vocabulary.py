@@ -48,6 +48,10 @@ class VocabularyEntryUpdate(BaseModel):
     pronunciation_ipa: Optional[str] = None
     uk_phonetic: Optional[str] = None
     us_phonetic: Optional[str] = None
+    is_starred: bool = False
+    starred_at: Optional[datetime] = None
+    star_note: Optional[str] = None
+    star_priority: str = "normal"
     familiarity: Optional[str] = None
     tags_json: Optional[List[Any]] = None
     last_reviewed_at: Optional[datetime] = None
@@ -69,6 +73,10 @@ class VocabularyEntryResponse(BaseModel):
     pronunciation_ipa: Optional[str] = None
     uk_phonetic: Optional[str] = None
     us_phonetic: Optional[str] = None
+    is_starred: bool = False
+    starred_at: Optional[datetime] = None
+    star_note: Optional[str] = None
+    star_priority: str = "normal"
     familiarity: str
     review_count: int
     last_reviewed_at: Optional[datetime] = None
@@ -79,6 +87,12 @@ class VocabularyEntryResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StarEntryRequest(BaseModel):
+    is_starred: bool
+    star_note: Optional[str] = None
+    star_priority: str = "normal"  # normal / high
 
 
 class ParseMarkdownRequest(BaseModel):

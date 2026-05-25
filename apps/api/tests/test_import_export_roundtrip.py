@@ -83,9 +83,15 @@ class TestRoundtrip:
         entry = v_entries[0]
         assert "familiarity" in entry
         assert "review_count" in entry
+        assert "is_starred" in entry
+        assert "star_priority" in entry
         # v0.3.4: phonetics fields survive export
         assert entry.get("uk_phonetic") == "/ˈpendɪŋ/"
         assert entry.get("us_phonetic") == "/ˈpendɪŋ/"
+        # v0.4.0: starred fields
+        client.put(f"/api/vocabulary/entries/{eid}/star", json={
+            "is_starred": True, "star_note": "rt star", "star_priority": "high"
+        })
 
     def test_02_import_and_verify(self, client):
         # Re-export to get current data (test isolation requires self-contained steps)

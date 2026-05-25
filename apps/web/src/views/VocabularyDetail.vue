@@ -101,12 +101,21 @@
                 </el-select>
               </div>
               <div class="entry-meta-right">
+                <el-button size="small" text @click.stop="handleStarClick(entry)" :title="entry.is_starred ? '取消星标' : '标星'">
+                  <el-icon :color="entry.is_starred ? '#F59E0B' : undefined"><StarFilled v-if="entry.is_starred" /><Star v-else /></el-icon>
+                </el-button>
                 <el-button size="small" text @click="openEditDialog(entry)">
                   <el-icon><Edit /></el-icon>
                   编辑
                 </el-button>
                 <span class="review-count">复习 {{ entry.review_count }} 次</span>
               </div>
+            </div>
+
+            <!-- Star note -->
+            <div v-if="entry.is_starred && entry.star_note" class="star-note-bar">
+              <el-icon :size="14" color="#F59E0B"><StarFilled /></el-icon>
+              <span>{{ entry.star_note }}</span>
             </div>
 
             <!-- Meanings -->
@@ -252,6 +261,28 @@
       </EmptyState>
     </template>
 
+    <!-- Star dialog -->
+    <el-dialog v-model="starDialogVisible" title="标星词汇" width="400px" destroy-on-close>
+      <el-form v-if="starTarget" label-position="top">
+        <p style="margin-bottom: var(--space-md); color: var(--color-text-secondary);">
+          将 <strong>{{ starTarget.term }}</strong> 标记为重点词汇
+        </p>
+        <el-form-item label="备注（为什么总是记不清）">
+          <el-input v-model="starNoteText" type="textarea" :rows="2" placeholder="如：总是和 negligent 混淆" />
+        </el-form-item>
+        <el-form-item label="优先级">
+          <el-radio-group v-model="starPriorityValue">
+            <el-radio-button value="normal">普通</el-radio-button>
+            <el-radio-button value="high">高</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="starDialogVisible = false">取消</el-button>
+        <el-button type="warning" :loading="starring" @click="doStar">确认标星</el-button>
+      </template>
+    </el-dialog>
+
     <!-- Edit dialog -->
     <el-dialog
       v-model="editDialogVisible"
@@ -344,11 +375,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Delete, Reading, Edit, WarningFilled, Refresh, EditPen, List, Collection, Notebook, Search } from '@element-plus/icons-vue'
+import { ArrowLeft, Delete, Reading, Edit, WarningFilled, Refresh, EditPen, List, Collection, Notebook, Search, Star, StarFilled } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { getVocabularyNote, deleteVocabularyNote, getVocabularyEntries, updateVocabularyEntry } from '@/api/vocabulary'
+import { getVocabularyNote, deleteVocabularyNote, getVocabularyEntries, updateVocabularyEntry, starEntry } from '@/api/vocabulary'
 import { useConfirm } from '@/composables/useConfirm'
 import { useSpeech } from '@/composables/useSpeech'
 import type { VocabularyNote, VocabularyEntry } from '@/types'
@@ -381,6 +412,13 @@ const editMistakeTipsText = ref('')
 const editSynonymsText = ref('')
 const editComparisonsText = ref('')
 const editWritingSentencesText = ref('')
+
+// Star
+const starDialogVisible = ref(false)
+const starTarget = ref<VocabularyEntry | null>(null)
+const starring = ref(false)
+const starNoteText = ref('')
+const starPriorityValue = ref('normal')
 
 const headerDescription = computed(() => {
   if (!note.value) return ''
@@ -544,6 +582,51 @@ async function saveEdit() {
   }
 }
 
+// Star entry handlers
+function handleStarClick(entry: VocabularyEntry) {
+  if (entry.is_starred) {
+    // Quick unstar without dialog
+    doUnstar(entry)
+    return
+  }
+  starTarget.value = entry
+  starNoteText.value = entry.star_note || ''
+  starPriorityValue.value = entry.star_priority || 'normal'
+  starDialogVisible.value = true
+}
+
+async function doUnstar(entry: VocabularyEntry) {
+  try {
+    await starEntry(entry.id, { is_starred: false })
+    entry.is_starred = false
+    entry.starred_at = undefined
+    ElMessage.success(`已取消「${entry.term}」的星标`)
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
+
+async function doStar() {
+  if (!starTarget.value) return
+  starring.value = true
+  try {
+    await starEntry(starTarget.value.id, {
+      is_starred: true,
+      star_note: starNoteText.value,
+      star_priority: starPriorityValue.value,
+    })
+    starTarget.value.is_starred = true
+    starTarget.value.star_note = starNoteText.value
+    starTarget.value.star_priority = starPriorityValue.value as 'normal' | 'high'
+    ElMessage.success('已标星')
+    starDialogVisible.value = false
+  } catch {
+    ElMessage.error('操作失败')
+  } finally {
+    starring.value = false
+  }
+}
+
 onMounted(loadNote)
 </script>
 
@@ -674,6 +757,17 @@ onMounted(loadNote)
   display: flex;
   align-items: center;
   gap: var(--space-md);
+}
+
+.star-note-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-xl);
+  background: #FFFBEB;
+  border-bottom: 1px solid #FDE68A;
+  font-size: var(--text-caption);
+  color: #92400E;
 }
 
 .review-count {

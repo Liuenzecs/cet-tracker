@@ -112,6 +112,16 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
     all_tasks = db.exec(select(ReviewTask)).all()
     pending_tasks = sum(1 for t in all_tasks if t.status in ("todo", "doing"))
 
+    # Starred vocabulary stats
+    starred_count = sum(1 for e in all_entries if e.is_starred)
+    high_priority_starred = sum(1 for e in all_entries if e.is_starred and e.star_priority == "high")
+    starred_due_today = sum(
+        1 for e in all_entries if e.is_starred and (
+            (e.next_review_at and e.next_review_at < tomorrow) or
+            (not e.next_review_at and e.familiarity in ("new", "learning"))
+        )
+    )
+
     # Intensive pending count
     all_listening_results = db.exec(select(ListeningResult)).all()
     intensive_pending = sum(1 for lr in all_listening_results if lr.intensive_status in ("not_started", "in_progress"))
@@ -170,6 +180,9 @@ def get_dashboard_stats(db: Session) -> DashboardStats:
         mastery_rate=mastery_rate,
         pending_review_tasks_count=pending_tasks,
         intensive_pending_count=intensive_pending,
+        starred_vocabulary_count=starred_count,
+        high_priority_starred_count=high_priority_starred,
+        starred_due_today_count=starred_due_today,
         top_mistake_tags=top_mistake_tags,
         recent_sessions=recent_sessions,
         recent_review_tasks=recent_tasks,

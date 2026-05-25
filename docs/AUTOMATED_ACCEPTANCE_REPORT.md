@@ -1,11 +1,11 @@
 # CET Tracker — Automated Acceptance Report
 
-**Generated:** 2026-05-25T15:43:33.355991+00:00
+**Generated:** 2026-05-25T16:34:57.091953+00:00
 **Overall status:** PASS
 
 **Summary:** 22 PASS, 0 FAIL, 0 XFAIL, 2 SKIPPED, 0 PASS_WITH_WARNINGS — 24 checks total
 
-**Git commit:** `8472113`
+**Git commit:** `a2d7de8`
 
 ## Results
 
@@ -19,9 +19,9 @@
 | 6 | gitignore_has_data/*.db | PASS | - |
 | 7 | gitignore_has_.claude | PASS | - |
 | 8 | gitignore_has_.venv | PASS | - |
-| 9 | backend_tests | PASS | 128/128 passed, 15 warnings |
+| 9 | backend_tests | PASS | 131/131 passed, 15 warnings |
 | 10 | frontend_build | PASS | - |
-| 11 | api_smoke_test | PASS | 24 smoke tests passed |
+| 11 | api_smoke_test | PASS | 27 smoke tests passed |
 | 12 | import_export_roundtrip | PASS | 2/2 roundtrip tests passed |
 | 13 | clean_package | PASS | 127 files, no forbidden items |
 | 14 | ai_mock_test | PASS | 13 AI-related tests passed (mock mode) |

@@ -35,6 +35,7 @@
         >
           <template #extra>
             <el-button v-if="noteIdFilter" type="primary" @click="router.push(`/vocabulary/${noteIdFilter}`)">返回词汇笔记</el-button>
+            <el-button v-if="starredFilter" type="warning" @click="router.push('/vocabulary/starred')">返回星标词汇</el-button>
             <el-button type="primary" @click="familiarityFilter = '', resetAndLoad()">查看全部</el-button>
             <el-button @click="router.push('/vocabulary/import')">导入笔记</el-button>
           </template>
@@ -49,7 +50,12 @@
             <div class="fc-badge">
               <StatusTag type="familiarity" :value="currentEntry.familiarity" />
             </div>
-            <h2 class="fc-term">{{ currentEntry.term }}</h2>
+            <div class="fc-term-row">
+              <h2 class="fc-term">{{ currentEntry.term }}</h2>
+              <button v-if="currentEntry.is_starred" class="star-indicator" title="已标星">
+                <el-icon :size="18" color="#F59E0B"><StarFilled /></el-icon>
+              </button>
+            </div>
             <button class="speak-btn" title="发音" @click.stop="speak(currentEntry.term)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -67,14 +73,16 @@
           <!-- Back: full details -->
           <div v-else class="flashcard-back">
             <div class="fc-back-header">
-              <h2 class="fc-term">{{ currentEntry.term }}</h2>
-              <button class="speak-btn small" title="发音" @click.stop="speak(currentEntry.term)">
+              <div style="display:flex;align-items:baseline;gap:var(--space-sm)">
+                <h2 class="fc-term">{{ currentEntry.term }}</h2>
+                <button class="speak-btn small" title="发音" @click.stop="speak(currentEntry.term)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                 </svg>
               </button>
+            </div>
             </div>
             <p v-if="currentEntry.uk_phonetic || currentEntry.us_phonetic" class="fc-ipa-back">
               <template v-if="currentEntry.uk_phonetic">UK {{ currentEntry.uk_phonetic }}</template>
@@ -145,6 +153,12 @@
             </el-button>
           </template>
           <template v-else>
+            <el-button size="default" :loading="starToggling" @click.stop="toggleStar">
+              <el-icon :color="currentEntry?.is_starred ? '#F59E0B' : undefined">
+                <StarFilled v-if="currentEntry?.is_starred" /><Star v-else />
+              </el-icon>
+              {{ currentEntry?.is_starred ? '已标星' : '标星' }}
+            </el-button>
             <el-button size="large" type="danger" :loading="marking" @click="markFamiliarity('new')">
               <el-icon><Close /></el-icon>
               不认识
@@ -172,11 +186,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { View, Close, QuestionFilled, CircleCheck, Star } from '@element-plus/icons-vue'
+import { View, Close, QuestionFilled, CircleCheck, Star, StarFilled } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import { useRoute } from 'vue-router'
-import { getReviewEntries, reviewEntry } from '@/api/vocabulary'
+import { getReviewEntries, reviewEntry, starEntry } from '@/api/vocabulary'
 import { useSpeech } from '@/composables/useSpeech'
 import type { VocabularyEntry } from '@/types'
 import { formatText, formatTextList, formatComparison } from '@/utils/vocabularyFormat'
@@ -192,7 +206,11 @@ const pageSize = ref(1)
 const familiarityFilter = ref('')
 const revealed = ref(false)
 const marking = ref(false)
+const starToggling = ref(false)
 const searchQuery = ref('')
+
+// Star tracking
+const starReviewedCount = ref(0)
 
 // v0.3.0: support note_id and due params from route query
 const noteIdFilter = computed(() => {
@@ -202,7 +220,11 @@ const noteIdFilter = computed(() => {
 const dueFilter = computed(() => {
   return (route.query?.due as string) || undefined
 })
+const starredFilter = computed(() => {
+  return (route.query?.starred as string) === 'true'
+})
 const pageTitle = computed(() => {
+  if (starredFilter.value) return '复习星标词汇'
   if (noteIdFilter.value) return '复习本次新增词汇'
   if (dueFilter.value === 'today') return '今日待复习'
   return '词汇复习'
@@ -229,6 +251,7 @@ async function loadReview() {
     if (searchQuery.value) params.q = searchQuery.value
     if (noteIdFilter.value) params.note_id = noteIdFilter.value
     if (dueFilter.value === 'today') params.due = 'today'
+    if (starredFilter.value) params.starred = true
 
     const res = await getReviewEntries(params)
     entries.value = res.data?.items ?? []
@@ -267,6 +290,7 @@ async function markFamiliarity(newFamiliarity: string) {
   marking.value = true
   try {
     await reviewEntry(currentEntry.value.id, action)
+    if (currentEntry.value.is_starred) starReviewedCount.value += 1
     ElMessage.success(`已标记为「${familiarityLabel(newFamiliarity)}」`)
 
     // Update summary
@@ -289,6 +313,25 @@ async function markFamiliarity(newFamiliarity: string) {
     ElMessage.error('更新失败')
   } finally {
     marking.value = false
+  }
+}
+
+async function toggleStar() {
+  if (!currentEntry.value || starToggling.value) return
+  starToggling.value = true
+  try {
+    const newState = !currentEntry.value.is_starred
+    await starEntry(currentEntry.value.id, {
+      is_starred: newState,
+      star_note: currentEntry.value.star_note,
+      star_priority: currentEntry.value.star_priority || 'normal',
+    })
+    currentEntry.value.is_starred = newState
+    ElMessage.success(newState ? '已标星' : '已取消星标')
+  } catch {
+    ElMessage.error('操作失败')
+  } finally {
+    starToggling.value = false
   }
 }
 
@@ -381,6 +424,19 @@ onMounted(loadReview)
   margin-bottom: var(--space-sm);
 }
 
+.fc-term-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.fc-term-row .fc-term { margin-bottom: 0; }
+.star-indicator {
+  display: inline-flex;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
 .fc-term {
   font-size: 36px;
   font-weight: 800;

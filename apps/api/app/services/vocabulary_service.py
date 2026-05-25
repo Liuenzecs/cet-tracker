@@ -358,3 +358,70 @@ def append_entries_to_note(
 
     db.commit()
     return count
+
+
+def star_entry(
+    db: Session, entry_id: int, is_starred: bool,
+    star_note: Optional[str] = None, star_priority: str = "normal",
+) -> Optional[VocabularyEntry]:
+    """Star or unstar a vocabulary entry."""
+    from app.schemas.vocabulary import VocabularyEntryUpdate
+    entry = db.get(VocabularyEntry, entry_id)
+    if not entry:
+        return None
+
+    entry.is_starred = is_starred
+    entry.starred_at = dt.datetime.utcnow() if is_starred else None
+    if star_note is not None:
+        entry.star_note = star_note
+    if star_priority in ("normal", "high"):
+        entry.star_priority = star_priority
+    entry.updated_at = dt.datetime.utcnow()
+
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+def get_starred_entries(
+    db: Session,
+    page: int = 1,
+    page_size: int = 20,
+    q: Optional[str] = None,
+    familiarity: Optional[str] = None,
+    star_priority: Optional[str] = None,
+    source_section: Optional[str] = None,
+    note_id: Optional[int] = None,
+) -> Tuple[List[VocabularyEntry], int]:
+    """Get all starred vocabulary entries with filtering and pagination."""
+    base_query = select(VocabularyEntry).where(VocabularyEntry.is_starred == True)
+
+    if q:
+        base_query = base_query.where(VocabularyEntry.term.contains(q))
+    if familiarity and familiarity in ("new", "learning", "familiar", "mastered"):
+        base_query = base_query.where(VocabularyEntry.familiarity == familiarity)
+    if star_priority and star_priority in ("normal", "high"):
+        base_query = base_query.where(VocabularyEntry.star_priority == star_priority)
+    if note_id is not None:
+        base_query = base_query.where(VocabularyEntry.note_id == note_id)
+
+    # Count
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = db.exec(count_query).one()
+
+    # Paginate, ordering: high priority first, then recently starred, then updated
+    query = base_query.order_by(
+        VocabularyEntry.star_priority.desc(),
+        VocabularyEntry.starred_at.desc().nullslast(),
+        VocabularyEntry.updated_at.desc(),
+    )
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    items = list(db.exec(query).all())
+
+    # source_section filter (via join to vocabulary_notes)
+    if source_section:
+        items = [e for e in items if e.note and e.note.source_section == source_section]
+        total = len(items)
+
+    return items, total

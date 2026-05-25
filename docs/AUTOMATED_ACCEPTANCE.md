@@ -19,7 +19,7 @@ RUN_LIVE_AI_TESTS=true python scripts/run_acceptance.py
 
 1. **File structure** — all required source files present, no forbidden files
 2. **Git security** — `.env` not tracked, `.gitignore` has required exclusions
-3. **Backend tests** — runs `pytest tests/` in `apps/api/` (128 tests expected)
+3. **Backend tests** — runs `pytest tests/` in `apps/api/` (131 tests expected)
 4. **Frontend build** — runs `pnpm build` in `apps/web/`
 5. **API smoke test** — creates sessions, entries, reviews, tasks, reports
 6. **Import/export roundtrip** — actually runs `test_import_export_roundtrip.py` (create → export → import → verify)

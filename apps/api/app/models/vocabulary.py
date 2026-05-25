@@ -55,6 +55,10 @@ class VocabularyEntry(SQLModel, table=True):
     pronunciation_ipa: Optional[str] = Field(default=None, max_length=200)
     uk_phonetic: Optional[str] = Field(default=None, max_length=200)
     us_phonetic: Optional[str] = Field(default=None, max_length=200)
+    is_starred: bool = Field(default=False)
+    starred_at: Optional[datetime] = Field(default=None)
+    star_note: Optional[str] = Field(default=None, max_length=500)
+    star_priority: str = Field(default="normal", max_length=20)  # normal / high
     tags_json: Optional[List] = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
